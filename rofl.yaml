@@ -1,0 +1,95 @@
+name: WT3
+version: 1.3.2
+author: Oasis Protocol Foundation <wt3@oasisprotocol.org>
+license: Apache-2.0
+description: WT3 is the first trustless, onchain trading agent built on Sapphire. Fully autonomous. AI-powered. Verified inside a TEE.
+tee: tdx
+kind: container
+resources:
+  memory: 8192
+  cpus: 1
+  storage:
+    kind: disk-persistent
+    size: 8192
+artifacts:
+  firmware: https://github.com/oasisprotocol/oasis-boot/releases/download/v0.4.1/ovmf.tdx.fd#db47100a7d6a0c1f6983be224137c3f8d7cb09b63bb1c7a5ee7829d8e994a42f
+  kernel: https://github.com/oasisprotocol/oasis-boot/releases/download/v0.4.1/stage1.bin#06e12cba9b2423b4dd5916f4d84bf9c043f30041ab03aa74006f46ef9c129d22
+  stage2: https://github.com/oasisprotocol/oasis-boot/releases/download/v0.4.1/stage2-podman.tar.bz2#6f2487aa064460384309a58c858ffea9316e739331b5c36789bb2f61117869d6
+  container:
+    runtime: https://github.com/oasisprotocol/oasis-sdk/releases/download/rofl-containers%2Fv0.4.2/rofl-containers#0cbaa4c0c1b35c5ed41156868bee9f3726f52eeedc01b3060d3b2eb67d76f546
+    compose: compose.yaml
+deployments:
+  mainnet:
+    app_id: rofl1qpdzzm4h73gtes04xjn4whan84s3k33l5gx787l2
+    network: mainnet
+    paratime: sapphire
+    admin: wt3
+    trust_root:
+      height: 24140280
+      hash: 67af7917bcb16bee0769bbd32a2c74b0a840bd5233ba684f10ef5695565d4f8f
+    policy:
+      quotes:
+        pcs:
+          tcb_validity_period: 30
+          min_tcb_evaluation_data_number: 18
+          tdx: {}
+      enclaves:
+        - BzOz2Sy2cDbuBPgUIugtr5THnPJM0j/gxfOIWiCTsSwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - P1j3DoOHNQJaD78Ci7Vzafz71HaW+p3r0dqKX7FJPccAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+      endorsements:
+        - node: aasPic6KJpQf3w6DTjaDu8Pwwke9k0vPCjuZQ5HQQQQ=
+      fees: endorsing_node
+      max_expiration: 3
+    secrets:
+      - name: GROK_API_KEY
+        value: pGJwa1ggD/yScHMz1wyPVOhJJ6nw7wmIZfLjotR8jqigdoUXlxhkbmFtZVgcFURoQyEiijo1pq2hxxUZc9U2uYkBEf0jCdsJJWVub25jZU/vU7wd32uHktz4103/OiBldmFsdWVYZPGbOJYQHwI6za/tbKX3siMoATANVGrfheEjlJhfs5RzlHlqFWOaxm27nyhpou0ZHryaQYavCGeXXQB/p1dYSY9xcMLrkAaJqHf0LO5a+07WpLifgvW3L0331jVrd/tJlVMfMrI=
+      - name: TWITTER_BEARER_TOKEN
+        value: pGJwa1ggn1cjElLRnCJNWOnTWc2pYH/5D2WQpJ/ZPBqbKywLH39kbmFtZVgkpGcwOGpjHcolBrarckqbE9ZxSjYm6P9EEiJyUg0FxgzlRC+5ZW5vbmNlT4zWTJCV7H7FTXer5g1u32V2YWx1ZViCoydEf2cs+FlBqwpzrqATEJ0ufKS+Sh8pwLWfuy2OQ+iuz5DEX00cSGDw9Y3uEHPn0dbPQif8osPopGixys6IJdVd3c3GpbhJSyDXO6w3FjSv6jj+6MlZU+plk6lVOmHhO+VilrUfXUVzvSAqvdf6kvwIig0TEQkSH0CwZ/jFaA5TWg==
+      - name: TWITTER_API_KEY
+        value: pGJwa1ggswM0skHfn7xKgymkS+TD+v5OLE2MxvBi7SxjDJFfUkhkbmFtZVgfGj4ue+QdVad/aUy54WQ9TLvdOjlQ4XwW6hcCQqfPeWVub25jZU/RM8guxd1Dt/Thp4xrirNldmFsdWVYKcn1FQKk6Qv/ZMeFXfHz9SjyJ4q6ROMX1MQ4Je89kji3IY8m54kKMGtQ
+      - name: TWITTER_API_SECRET
+        value: pGJwa1gg/E4LyaYQil6rmoHPVxvX1elet1uH71ov7OUzt/WlxyJkbmFtZVgiuN5cCVIpirTy4lFtcXQY303DaCQnUZ5L1DYFECTOg0sx5WVub25jZU89LSkGg2c3+KQXpwmmhY1ldmFsdWVYQrUcJr6Cpu20mJIvEbrVc0GTpZYUezpRTs0mRmR6OCOOnuEiEoFtjMIxRlov4KDCpU0mst6DkkGn4n740Vo5sPBGaw==
+      - name: TWITTER_ACCESS_TOKEN
+        value: pGJwa1ggY0nR5E4japG98L8aVwsauhONUjHMfRNsPaJtW0eUHgJkbmFtZVgk5AF3vPFvrjLpS+SdHkv3RgsjXBeWlq8umS12YP0ChoZQWpPPZW5vbmNlTzKd1aV8vZzRHn+OTSICO2V2YWx1ZVhCh+7QaJjHX49LOiO8wsCBdbpE1EJWt5h5svSAPNioFrd/3YRV9wHb1pV/wrWXip99xk7uuIHuC74lXbdmA92Twk6i
+      - name: TWITTER_ACCESS_TOKEN_SECRET
+        value: pGJwa1ggpsWvkJn5aky00I0qxDGv1QxI2vaS7uT217tK3I+KECFkbmFtZVgrGAfce0Tam7SkZokW2inl2eeIf3DlM7ZL6Bh1kLrQplPyUwuXSRougo51IGVub25jZU+AA/ZJVBTL92MokujGQ1pldmFsdWVYPXv+BUQ+JkPfv7dKfur4nbTusXEJkWddK3ZCGTxeWFK8zM37YTht+XxVZaV8QT8oXTDSv+8S8dRaCeWTGog=
+      - name: SIGNAL_SERVICE_URL
+        value: pGJwa1ggShZPFJb0rWeJLn0GdYakAF13nCg8JgKqCBKRmGcl/TRkbmFtZVgi6ey3kSR5XVzigb4Qb6+a/gETDueOV5iOcsz+7mlRMLwEomVub25jZU+Smd/fPIaMXW9j8xB9241ldmFsdWVYKjn85TOhV+gypVs/JjRe5D+uKEEkT78DxDZJC/HTAbmU+JitLrhTaJ0G2w==
+      - name: AGE_PRIVATE_KEY
+        value: pGJwa1gg3eUzqhDGI/qi8m1iC9Zd4BCBhMku5igt2l1QWdYnxnBkbmFtZVgfrvCjJV+R2RSctaOev10Tg5tXrUyfylC21sQIoSoUumVub25jZU9/mpZTAhh7qbVgRZRMsT1ldmFsdWVYWjmozrW+cSX+yooX73jT/Zr2c49jglDin4akg/4JLYnCIq8UoI2xiSehv/cTWZt19z06u6iw4+vWGXhjkH806OGCHzI2J2g6o+KssZBn2kdOmcmZXz9qsg3lwg==
+  testnet:
+    app_id: rofl1qzp3c6zt96r5c5sw0sljlvepwgg4u23atgh4legq
+    network: testnet
+    paratime: sapphire
+    admin: wt3
+    trust_root:
+      height: 25773089
+      hash: 6e893c20e05a302b3edc828e51b892510a0fbae568ced68ce2b3c814949b007c
+    policy:
+      quotes:
+        pcs:
+          tcb_validity_period: 30
+          min_tcb_evaluation_data_number: 18
+          tdx: {}
+      enclaves:
+        - /Bsr5VeoUJ4dhm4NhcoSVnypb6pA8cJ2uYLF04nMgQMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - o+W1yQpD0IzceELSZ66BrvdPZh71OaGLyDcH69EypAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+      endorsements:
+        - any: {}
+      fees: endorsing_node
+      max_expiration: 3
+    secrets:
+      - name: GROK_API_KEY
+        value: pGJwa1ggTepPGM8Hmv4/WxInUs/juk94Af9Q+fpc6lo150vZWHdkbmFtZVgcInaeQQP/GCFtHf06lV2ckgnOz+Ixgl2Atk3cN2Vub25jZU/qXd1VD3quLqjICRPaJIhldmFsdWVYZDH51ppXXI3Iu+dtbeQNBQh9FwdnjeO/QrxqE/RurUop28k7+/iSGHylgXVLGMrG5eJZcQkoQr44pyovpBR4hrPPjRtwEzIONp/vvk5qOC1b6AxxVk1QVd+tCwyKTSmymxtwSWc=
+      - name: TWITTER_BEARER_TOKEN
+        value: pGJwa1ggaIG6BB+XjPlJlLMD0uUKfum4oqv9r8AzRbXhmOxf+H9kbmFtZVgk4bPaRDE+ME4pbPWwaMs81piIDkCsnRNO9VvfW46hpaKa7/h2ZW5vbmNlT3F5mBW19day9zqjecjvJmV2YWx1ZViEwxOaza2ZgR/vjE91IadMq/Mcugezc5GMVerW9NYzquXJPHHkriEu2vAwH16UCFTI3FAsiJZ+rpRfZnDujUBCLtQVNM1aAA9RiJecXS215B9HjSYMc7koPWSra4G20DT2bCvDbdTpjBpqNFIzJbpF8xr2nRNq9gZJ48Pb4CQviBV2PfMM
+      - name: TWITTER_API_KEY
+        value: pGJwa1ggq+ofG3s6GRb8vFgljKjV46vWFXzXnmiz2ngX+d+9CFhkbmFtZVgf87M99UZlilBkYEnYnB+j0tMV75bRs7v/mic2HQwP/GVub25jZU/XsdID4tOnE0Wcj2IkjntldmFsdWVYKS8oYrtB4SxVduO6lFWP8Az2nUotc1IT0tBEyT0prHbOgwbMkFJgrIaZ
+      - name: TWITTER_API_SECRET
+        value: pGJwa1ggCPhRqjQQQUakR7QLSc6xrP4urErPw8TGW6UceCNXP2RkbmFtZVgir3v2QtIhG/ctA9y8t2BHv5w0bkisI/H5my/rNKcagZTCaGVub25jZU/mogyFjKunBGWpC1iu191ldmFsdWVYQtbjfRdeGo5/dSnLmIW2CgezHxqQAwJ62J2rdhc8B5OKi/wXg0wDOq3X3a5NFazBqcz5bXj9OswTYOvVLzNSUO/mcg==
+      - name: TWITTER_ACCESS_TOKEN
+        value: pGJwa1gg9/tAR/TlSR35yeTs7kisI1D/aslzGrOYSBkHOkhO1iRkbmFtZVgk6oUbdxLvtMPz4HbKaRbhsEO6dGKcoXDXLZMKyq1rVpbtoxB0ZW5vbmNlT9UdezploSb3s+sVnOBWsmV2YWx1ZVhCrtyn5UI80WxXAK+j4xkOfn/7KlaWHe04vtiF0zN+iR59EwAnsVwmIo5QQyVQJy7T0vFu5n7V/8W4XbOLHT4ezBd0
+      - name: TWITTER_ACCESS_TOKEN_SECRET
+        value: pGJwa1ggcJHt6xMZ/F2vJpUkrDcjSAnnJBKu7xHt+5nQ0kY5cTlkbmFtZVgr3dcdOJ8CoZEI/59vPeBfTx3ShhHTZldmiyHnHbQQuWNRnXqFcQJpy3/UZmVub25jZU/kNDVKeMKnXKunJIYFeotldmFsdWVYPet5x+SAwkEa0N6Rr7CQ8FQWreiCYj9jBxxDdV8uUtvHvwRh5HUplzpPnSC8mCJN3C4VVf5mYNbNPKeTVVE=
+      - name: SIGNAL_SERVICE_URL
+        value: pGJwa1ggSqQHP87E0U7aZTWAiLqTVbrIE+7pDacbB9pmZF3E9GBkbmFtZVgiLp5v7rpmvejWzYsTHz6WNbnFDa8Mb+8xNQ+eo2G3GQUdu2Vub25jZU+XSCrh/pq9yBHaC2FPRgJldmFsdWVYKkZivxw1eH/p9n0CEGYqPCZimuMqLhCoKHqrnuurwBeVKpNPIX8VeyzizA==

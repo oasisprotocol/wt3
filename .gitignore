@@ -1,0 +1,54 @@
+# Project specific
+src/signal_service/
+src/wt3/prompts/social_prompts.py
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+
+# Environment variables
+.env
+signal_service.key
+
+# Testing
+tests/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Docker
+.dockerignore
+
+# Misc
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Data
+data/
+*.orc

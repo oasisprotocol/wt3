@@ -1,0 +1,36 @@
+services:
+  signal-service:
+    image: docker.io/ahmedatoasis/wt3-signal@sha256:e067437817ae4210d31b3dca28821a8548e2a7498d8c342e38236231dc76eff2
+    build:
+      context: .
+      dockerfile: Dockerfile.signal
+    platform: linux/amd64
+    volumes:
+      - /run/rofl-appd.sock:/run/rofl-appd.sock
+      - /storage:/storage
+    environment:
+      - AGE_PRIVATE_KEY=${AGE_PRIVATE_KEY}
+    restart: always
+    ports:
+      - "8000:8000"
+
+  wt3:
+    image: docker.io/ahmedatoasis/wt3@sha256:5e5111e5f0c51606116784829ec303a7d4b0b3df712931533a3740b0fc1decd0
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    volumes:
+      - /run/rofl-appd.sock:/run/rofl-appd.sock
+      - /storage:/storage
+    environment:
+      - GROK_API_KEY=${GROK_API_KEY}
+      - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN}
+      - TWITTER_API_KEY=${TWITTER_API_KEY}
+      - TWITTER_API_SECRET=${TWITTER_API_SECRET}
+      - TWITTER_ACCESS_TOKEN=${TWITTER_ACCESS_TOKEN}
+      - TWITTER_ACCESS_TOKEN_SECRET=${TWITTER_ACCESS_TOKEN_SECRET}
+      - SIGNAL_SERVICE_URL=${SIGNAL_SERVICE_URL}
+    depends_on:
+      - signal-service
+    restart: always
