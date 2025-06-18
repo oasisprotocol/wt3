@@ -19,7 +19,7 @@ RUN apt-get update && \
 
 COPY . .
 
-COPY src/signal_service.tar.gz.age /app/
+COPY signal_service.tar.gz.age /app/
 COPY scripts/signal_entrypoint.sh /app/
 RUN chmod +x /app/signal_entrypoint.sh
 

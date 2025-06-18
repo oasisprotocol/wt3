@@ -26,10 +26,10 @@ tar -czf signal_service.tar.gz src/signal_service/
 echo "✓ Created archive of signal service files"
 
 echo "Encrypting signal service files..."
-age -e -r "$PUBLIC_KEY" signal_service.tar.gz > src/signal_service.tar.gz.age
+age -e -r "$PUBLIC_KEY" signal_service.tar.gz > signal_service.tar.gz.age
 echo "✓ Successfully encrypted signal service files"
 
 rm signal_service.tar.gz
 echo "✓ Cleaned up temporary files"
 
-echo "Encryption complete: src/signal_service.tar.gz.age" 
+echo "Encryption complete: signal_service.tar.gz.age" 
