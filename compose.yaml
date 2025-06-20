@@ -1,6 +1,6 @@
 services:
   signal-service:
-    image: docker.io/ahmedatoasis/wt3-signal@sha256:e067437817ae4210d31b3dca28821a8548e2a7498d8c342e38236231dc76eff2
+    image: docker.io/ahmedatoasis/wt3-signal@sha256:fb91d981068fa1c6166a0bed0e7519d7d3c69e2b366ab8e32b48f49beadc2ba1
     build:
       context: .
       dockerfile: Dockerfile.signal
@@ -15,7 +15,7 @@ services:
       - "8000:8000"
 
   wt3:
-    image: docker.io/ahmedatoasis/wt3@sha256:5e5111e5f0c51606116784829ec303a7d4b0b3df712931533a3740b0fc1decd0
+    image: docker.io/ahmedatoasis/wt3@sha256:6065cb49ead20fb4af15ce85aedc69a1ecc0d27026407192e337e6fca66f2c34
     build:
       context: .
       dockerfile: Dockerfile

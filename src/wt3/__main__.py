@@ -17,7 +17,7 @@ from typing import Dict, Optional, List, Any, Deque
 
 from .core.trading import TradeTools, TradingError
 from .clients.social import SocialClient, SocialClientError
-from .clients.signal import SignalClient, SignalError
+from .clients.signal import SignalClient
 
 logging.basicConfig(
     level=logging.INFO,
@@ -277,6 +277,20 @@ async def post_hourly_recap() -> None:
             current_price = await trade_tools.get_current_price(coin)
             
             logger.debug(f"Current position size: {position_size} {coin}")
+            try:
+                price_change_pct_1h = await trade_tools.get_price_change_1h(coin)
+            except Exception as e:
+                logger.warning(f"Could not get 1h price change: {e}")
+                price_change_pct_1h = 0
+            
+            current_hour = datetime.now().hour
+            if 0 <= current_hour < 8:
+                market_session = "Asian"
+            elif 8 <= current_hour < 16:
+                market_session = "European"
+            else:
+                market_session = "US"
+            
             if position_size != 0:
                 is_long = position_size > 0
                 position_type = "LONG" if is_long else "SHORT"
@@ -287,7 +301,9 @@ async def post_hourly_recap() -> None:
                     pnl_percent = (current_price - entry_price) / entry_price * 100
                 else:
                     pnl_percent = (entry_price - current_price) / entry_price * 100
-                    
+                
+                position_age_hours = 1
+                
                 position_info = {
                     "has_position": True,
                     "coin": coin.upper(),
@@ -296,11 +312,18 @@ async def post_hourly_recap() -> None:
                     "position_value": position_value,
                     "entry_price": entry_price,
                     "current_price": current_price,
-                    "pnl_percent": pnl_percent
+                    "pnl_percent": pnl_percent,
+                    "price_change_1h": price_change_pct_1h,
+                    "market_session": market_session,
+                    "position_age_hours": position_age_hours
                 }
             else:
                 position_info = {
-                    "has_position": False
+                    "has_position": False,
+                    "coin": coin.upper(),
+                    "current_price": current_price,
+                    "price_change_1h": price_change_pct_1h,
+                    "market_session": market_session
                 }
             
             activity_counts = {

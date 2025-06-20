@@ -10,6 +10,7 @@ import os
 import logging
 import time
 import json
+import random
 from typing import Annotated, Dict, Optional, Tuple, Any
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -131,6 +132,8 @@ class SocialClient:
         
         self.last_mention_check = datetime.now() - timedelta(minutes=9)
         self.last_whitelist_check = datetime.now() - timedelta(minutes=9)
+        
+        self.recent_tweet_starts = []
     
     def _load_conversation_history(self) -> None:
         """Load conversation history and last mention ID from file.
@@ -238,48 +241,31 @@ class SocialClient:
             ContentGenerationError: If content generation fails
         """
         try:
-            has_position = position_info.get("has_position", False)
+            recap_data = {
+                "position": position_info,
+                "activities": activities_summary,
+                "timestamp": datetime.now().isoformat()
+            }
             
-            counts = activities_summary.get("counts", {})
-            time_span = activities_summary.get("time_span", timedelta(hours=1))
-            
-            hours = time_span.total_seconds() / 3600
-            time_str = f"{hours:.1f} hours" if hours >= 1 else f"{int(time_span.total_seconds() / 60)} minutes"
-            
-            if has_position:
-                coin = position_info.get("coin", "BTC")
-                direction = position_info.get("direction", "UNKNOWN")
-                position_size = position_info.get("position_size", 0)
-                position_value = position_info.get("position_value", 0)
-                entry_price = position_info.get("entry_price", 0)
-                current_price = position_info.get("current_price", 0)
-                pnl_percent = position_info.get("pnl_percent", 0)
-                
-                position_str = (
-                    f"Current position: {direction} {coin}\n"
-                    f"Size: {position_size:.4f} ({position_value:.2f} USD)\n"
-                    f"Entry: ${entry_price:.2f}, Current: ${current_price:.2f}\n"
-                    f"Unrealized P&L: {pnl_percent:.2f}%"
-                )
-            else:
-                position_str = "No active positions"
-            
-            activity_str = (
-                f"Last {time_str} activity:\n"
-                f"- New orders placed: {counts.get('open_order_placed', 0)}\n"
-                f"- Position reversals: {counts.get('reverse', 0)}\n"
-                f"- Positions held: {counts.get('hold', 0)}\n"
-                f"- No actions taken: {counts.get('no_action', 0)}\n"
-                f"- Failed operations: {counts.get('failed', 0) + counts.get('error', 0)}"
-            )
+            prompt_context = self._build_recap_context(recap_data)
             
             user_prompt = prompts.HOURLY_RECAP_PROMPT.format(
-                position_str=position_str,
-                activity_str=activity_str
+                recap_context=prompt_context
             )
+            
+            if self.recent_tweet_starts:
+                avoid_patterns = "\n\nAVOID starting with these patterns used recently:\n"
+                for start in self.recent_tweet_starts[-3:]:
+                    avoid_patterns += f"- {start}\n"
+                user_prompt += avoid_patterns
             
             tweet_content = await self.agent.answer(user_prompt)
             logger.info(f"Generated hourly recap tweet content: {tweet_content}")
+            
+            first_words = " ".join(tweet_content.split()[:3])
+            self.recent_tweet_starts.append(first_words)
+            if len(self.recent_tweet_starts) > 10:
+                self.recent_tweet_starts = self.recent_tweet_starts[-10:]
             
             return tweet_content.strip()
             
@@ -605,11 +591,187 @@ class SocialClient:
             content = tweet.get("content", "")
             context_parts.append(f"{author}: {content}")
         
-        # Limit to the last 5 tweets to keep context manageable
         if len(context_parts) > 5:
             context_parts = context_parts[-5:]
             
         return "\n".join(context_parts)
+    
+    def _build_recap_context(self, recap_data: Dict[str, Any]) -> str:
+        """Build a natural language context from recap data.
+        
+        Args:
+            recap_data (Dict[str, Any]): Raw recap data including position and activities
+            
+        Returns:
+            str: Natural language description of the trading context
+        """
+        position = recap_data.get("position", {})
+        activities = recap_data.get("activities", {})
+        
+        context_parts = []
+        
+        if position.get("has_position", False):
+            coin = position.get("coin", "BTC")
+            direction = position.get("direction", "UNKNOWN").lower()
+            pnl_percent = position.get("pnl_percent", 0)
+            entry_price = position.get("entry_price", 0)
+            current_price = position.get("current_price", 0)
+            position_value = position.get("position_value", 0)
+            market_session = position.get("market_session", "")
+            price_change_1h = position.get("price_change_1h", 0)
+            
+            info_styles = random.choice([
+                [
+                    f"I have a {direction} position on ${coin}",
+                    f"Entry at ${entry_price:.2f}, now ${current_price:.2f}",
+                    f"P&L: {pnl_percent:+.2f}%"
+                ],
+                [
+                    f"Position: {pnl_percent:+.2f}% on ${coin} {direction}",
+                    f"Entered at ${entry_price:.2f}, current ${current_price:.2f}",
+                    f"{market_session} session trading"
+                ],
+                [
+                    f"{market_session} session, ${coin} at ${current_price:.2f}",
+                    f"My {direction} from ${entry_price:.2f}",
+                    f"Running {pnl_percent:+.2f}%"
+                ],
+                [
+                    f"The {direction} on ${coin} moves {pnl_percent:+.2f}%",
+                    f"From ${entry_price:.2f} to ${current_price:.2f}",
+                    f"{market_session} markets in play"
+                ]
+            ])
+            
+            context_parts.extend(info_styles)
+            
+            if price_change_1h != 0 and random.random() > 0.5:
+                movement_phrases = [
+                    f"${coin} moved {price_change_1h:+.2f}% this hour",
+                    f"Hourly: ${coin} {price_change_1h:+.2f}%",
+                    f"Last 60min: {price_change_1h:+.2f}% on ${coin}"
+                ]
+                context_parts.append(random.choice(movement_phrases))
+        else:
+            coin = position.get("coin", "BTC")
+            current_price = position.get("current_price", 0)
+            market_session = position.get("market_session", "")
+            price_change_1h = position.get("price_change_1h", 0)
+            
+            no_position_styles = random.choice([
+                [
+                    f"No active position",
+                    f"${coin} trades at ${current_price:.2f}",
+                    f"{market_session} session ongoing"
+                ],
+                [
+                    f"Stalking ${coin} at ${current_price:.2f}",
+                    f"No position currently",
+                    f"{market_session} markets"
+                ],
+                [
+                    f"Watching from the sidelines",
+                    f"${coin}: ${current_price:.2f}",
+                    f"{market_session} session"
+                ],
+                [
+                    f"${coin} at ${current_price:.2f}",
+                    f"Position: flat",
+                    f"Hunting in {market_session} hours"
+                ]
+            ])
+            
+            context_parts.extend(no_position_styles)
+            
+            if price_change_1h != 0 and random.random() > 0.5:
+                context_parts.append(f"Hour change: {price_change_1h:+.2f}%")
+        
+        counts = activities.get("counts", {})
+        time_span = activities.get("time_span", timedelta(hours=1))
+        hours = time_span.total_seconds() / 3600
+        
+        activity_variations = {
+            "open_order_placed": [
+                "placed {n} orders",
+                "entered {n} positions",
+                "initiated {n} trades",
+                "opened {n} new plays",
+                "struck {n} times"
+            ],
+            "reverse": [
+                "reversed {n} times",
+                "flipped direction {n} times",
+                "switched sides {n} times",
+                "changed course {n} times",
+                "pivoted {n} times"
+            ],
+            "hold": [
+                "held steady {n} times",
+                "maintained position {n} cycles",
+                "stayed course {n} intervals",
+                "patient through {n} checks",
+                "unwavering for {n} periods"
+            ],
+            "executed": [
+                "executed {n} trades",
+                "completed {n} fills",
+                "closed {n} orders",
+                "finalized {n} moves",
+                "secured {n} trades"
+            ],
+            "close": [
+                "closed {n} positions",
+                "exited {n} trades",
+                "took profits {n} times",
+                "realized gains {n} times"
+            ]
+        }
+        
+        activity_summary = []
+        
+        if random.random() > 0.7:
+            significant_activity = sum(counts.values()) > 0
+            if significant_activity:
+                context_parts.append(random.choice([
+                    "Active trading this hour",
+                    "Multiple moves executed",
+                    "Busy hour in the markets",
+                    "Several trades completed"
+                ]))
+        else:
+            for action, variations in activity_variations.items():
+                count = counts.get(action, 0)
+                if count > 0:
+                    template = random.choice(variations)
+                    activity_summary.append(template.format(n=count))
+            
+            if activity_summary:
+                time_desc = f"{hours:.1f}h" if hours >= 1 else f"{int(time_span.total_seconds() / 60)}min"
+                
+                if len(activity_summary) == 1:
+                    activity_intros = [
+                        f"This hour: {activity_summary[0]}",
+                        f"Recent action: {activity_summary[0]}",
+                        f"{activity_summary[0]} in the last {time_desc}",
+                        f"Update: {activity_summary[0]}"
+                    ]
+                else:
+                    joined = ', '.join(activity_summary[:-1]) + f" and {activity_summary[-1]}"
+                    activity_intros = [
+                        f"Last {time_desc}: {joined}",
+                        f"Actions taken: {joined}",
+                        f"Executed: {joined}",
+                        f"Recent moves: {joined}"
+                    ]
+                context_parts.append(random.choice(activity_intros))
+        
+        if random.random() > 0.5 and len(context_parts) > 2:
+            first = context_parts[0]
+            rest = context_parts[1:]
+            random.shuffle(rest)
+            context_parts = [first] + rest
+        
+        return ". ".join(context_parts)
     
     def _update_conversation_history(
         self,

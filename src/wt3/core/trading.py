@@ -13,6 +13,7 @@ from hyperliquid.info import Info
 from hyperliquid.exchange import Exchange
 from hyperliquid.utils import constants
 import math
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +173,53 @@ class TradeTools:
             error_msg = f"Error getting current price for {coin}: {str(e)}"
             logger.error(error_msg)
             raise MarketDataError(error_msg)
+
+    async def get_price_change_1h(self, coin: str) -> float:
+        """Get 1-hour price change percentage from Binance.US API.
+        
+        Args:
+            coin (str): The trading pair symbol (e.g., 'BTC', 'ETH')
+            
+        Returns:
+            float: 1-hour price change percentage
+            
+        Raises:
+            MarketDataError: If price data cannot be retrieved
+        """
+        try:
+            symbol = f"{coin.upper()}USDT"
+            url = f"https://api.binance.us/api/v3/klines"
+            params = {
+                "symbol": symbol,
+                "interval": "1h",
+                "limit": 2
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params) as response:
+                    if response.status == 200:
+                        klines = await response.json()
+                        if len(klines) >= 2:
+                            previous_close = float(klines[-2][4])
+                            current_close = float(klines[-1][4])
+                            
+                            if previous_close > 0:
+                                price_change_pct = ((current_close - previous_close) / previous_close) * 100
+                                logger.debug(f"1h price change for {coin}: {price_change_pct:.2f}%")
+                                return price_change_pct
+                            else:
+                                logger.warning(f"Invalid previous close price for {coin}")
+                                return 0.0
+                        else:
+                            logger.warning(f"Insufficient kline data for {coin}")
+                            return 0.0
+                    else:
+                        logger.warning(f"Binance API returned status {response.status} for {coin}")
+                        return 0.0
+                        
+        except Exception as e:
+            logger.warning(f"Error getting 1h price change for {coin} from Binance: {str(e)}")
+            return 0.0
 
     async def get_entry_price(self, coin: str) -> float:
         """Get entry price for an existing position.
