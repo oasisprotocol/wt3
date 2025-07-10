@@ -36,7 +36,7 @@ class TradeDecision(TypedDict):
 
 class SignalResponse(TypedDict):
     """Complete signal response structure."""
-    timestamp: int  # unix timestamp
+    timestamp: int
     trade_decision: Optional[TradeDecision]
     current_position: Optional[CurrentPosition]
 
@@ -64,8 +64,6 @@ class SignalClient:
         try:
             self.base_url = os.getenv("SIGNAL_SERVICE_URL")
             self._session = None
-            self._health_check_interval = 1
-            self._max_health_check_attempts = 30
             logger.info(f"Signal client initialized with base URL: {self.base_url}")
         except Exception as e:
             error_msg = f"Failed to initialize signal client: {str(e)}"
@@ -118,7 +116,7 @@ class SignalClient:
             bool: True if service became healthy, False if timed out
         """
         start_time = asyncio.get_event_loop().time()
-        current_interval = self._health_check_interval
+        current_interval = 1
         consecutive_failures = 0
         
         while True:
@@ -267,6 +265,6 @@ class SignalClient:
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, _exc_type, _exc_val, _exc_tb):
         """Async context manager exit."""
         await self.close()

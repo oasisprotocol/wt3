@@ -1,8 +1,8 @@
 name: WT3
-version: 1.3.2
+version: 1.4.3
+repository: https://github.com/oasisprotocol/wt3
 author: Oasis Protocol Foundation <wt3@oasisprotocol.org>
 license: Apache-2.0
-repository: https://github.com/oasisprotocol/wt3
 description: WT3 is the first trustless, onchain trading agent built on Sapphire. Fully autonomous. AI-powered. Verified inside a TEE.
 tee: tdx
 kind: container
@@ -35,8 +35,8 @@ deployments:
           min_tcb_evaluation_data_number: 18
           tdx: {}
       enclaves:
-        - yzqRQOlU+OOxfER8QNzOK0TCDr/JTVuftOC8NZbjPdcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-        - 9MaV0lvG+/9x3/UaFPXOvXNFiLh1HDh5GVoutQuXLBcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - KA1qSPAzHl+nDKjDe5f0m4q1aFG4PBKVIfpJ00qvs3kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - pkZrD/BeGbnN9N/0LDRxUhuTGLunzrzwIWcCvjxPiwsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
       endorsements:
         - node: aasPic6KJpQf3w6DTjaDu8Pwwke9k0vPCjuZQ5HQQQQ=
       fees: endorsing_node

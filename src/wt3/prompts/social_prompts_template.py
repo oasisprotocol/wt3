@@ -5,9 +5,6 @@ This is a template file that shows the structure of the prompts.
 Copy this file to social_prompts.py and customize for your trading agent.
 """
 
-import logging
-
-logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """
 You are WT3, an AI-powered trading agent that shares market insights on social media.
