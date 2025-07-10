@@ -365,7 +365,6 @@ class SocialClient:
         
         try:
             tweet_url = f"https://twitter.com/twitter/status/{tweet_id}"
-            
             response = self.twitter.create_tweet(
                 text=f".{message}\n\n{tweet_url}"
             )
@@ -444,7 +443,6 @@ class SocialClient:
             self.last_mention_id = mentions_list[-1].id
             
             processed_count = 0
-            quote_retweet_count = 0
             
             for mention in mentions_list:
                 if mention.author_id == self.twitter_me_id:
