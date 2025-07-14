@@ -63,7 +63,9 @@ class SignalClient:
         """
         try:
             self.base_url = os.getenv("SIGNAL_SERVICE_URL")
+            self.fallback_url = "http://127.0.0.1:8001"
             self._session = None
+            self._using_fallback = False
             logger.info(f"Signal client initialized with base URL: {self.base_url}")
         except Exception as e:
             error_msg = f"Failed to initialize signal client: {str(e)}"
@@ -81,14 +83,17 @@ class SignalClient:
             self._session = aiohttp.ClientSession()
         return self._session
 
-    async def check_health(self) -> bool:
+    async def check_health(self, use_fallback: bool = False) -> bool:
         """Check if the signal service is healthy.
+        
+        Args:
+            use_fallback: Whether to check the fallback service
         
         Returns:
             bool: True if service is healthy, False otherwise
         """
         try:
-            url = f"{self.base_url}/health"
+            url = f"{self.fallback_url if use_fallback else self.base_url}/health"
             async with self.session.get(url, timeout=5) as response:
                 if response.status == 200:
                     data = await response.json()
@@ -219,12 +224,9 @@ class SignalClient:
         """
         retry_count = 0
         last_error = None
-
+        
         while retry_count < max_retries:
             try:
-                if not await self.wait_for_health():
-                    raise SignalServiceError("Signal service is not healthy")
-                
                 url = f"{self.base_url}/signal/{coin}"
                 logger.info(f"Requesting prediction from {url} (attempt {retry_count + 1}/{max_retries})")
                 
@@ -251,7 +253,45 @@ class SignalClient:
                 logger.info(f"Retrying in {wait_time:.1f} seconds...")
                 await asyncio.sleep(wait_time)
 
-        logger.error(f"All {max_retries} attempts failed. Last error: {str(last_error)}")
+        logger.warning(f"All {max_retries} attempts to primary service failed. Trying fallback service...")
+        
+        fallback_healthy = await self.check_health(use_fallback=True)
+        if not fallback_healthy:
+            logger.error("Fallback signal service is also unavailable")
+            return None
+            
+        logger.warning("Using fallback signal_service_example")
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                url = f"{self.fallback_url}/signal/{coin}"
+                logger.info(f"Requesting prediction from fallback {url} (attempt {retry_count + 1}/{max_retries})")
+                
+                async with self.session.get(url) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        logger.info(f"Received prediction data from fallback: {data}")
+                        return self._validate_signal_response(data)
+                    else:
+                        error_msg = f"Fallback service returned error: {response.status} - {await response.text()}"
+                        logger.warning(f"Fallback attempt {retry_count + 1} failed: {error_msg}")
+                        last_error = SignalServiceError(error_msg)
+                        
+            except (aiohttp.ClientError, SignalValidationError) as e:
+                logger.warning(f"Fallback attempt {retry_count + 1} failed: {str(e)}")
+                last_error = e
+            except Exception as e:
+                logger.warning(f"Fallback attempt {retry_count + 1} failed with unexpected error: {str(e)}")
+                last_error = e
+
+            retry_count += 1
+            if retry_count < max_retries:
+                wait_time = retry_delay * (2 ** (retry_count - 1))
+                logger.info(f"Retrying fallback in {wait_time:.1f} seconds...")
+                await asyncio.sleep(wait_time)
+        
+        logger.error(f"All attempts to both primary and fallback services failed. Last error: {str(last_error)}")
         return None
 
     async def close(self):
@@ -265,6 +305,7 @@ class SignalClient:
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, _exc_type, _exc_val, _exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
         await self.close()
+        return None
