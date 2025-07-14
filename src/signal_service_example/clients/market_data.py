@@ -25,6 +25,17 @@ class MarketDataClient:
     def __init__(self):
         self.base_url = "https://api.binance.us/api/v3"
         self._session = None
+    
+    async def __aenter__(self):
+        """Enter async context manager."""
+        self._session = aiohttp.ClientSession()
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Exit async context manager."""
+        if self._session:
+            await self._session.close()
+            self._session = None
         
     async def get_klines(self, symbol: str, interval: str, limit: int = 100) -> List[Dict]:
         """
