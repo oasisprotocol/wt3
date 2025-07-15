@@ -123,6 +123,7 @@ class SocialClient:
         
         self.last_mention_id = None
         self.conversation_history = {}
+        self.processed_mentions = set()
         self._load_conversation_history()
         
         self.whitelist_accounts = {
@@ -149,13 +150,16 @@ class SocialClient:
                 logger.info("No conversation history file found, starting fresh")
                 self.conversation_history = {}
                 self.last_mention_id = None
+                self.processed_mentions = set()
                 return
             
             data = json.loads(history_path.read_text())
             self.conversation_history = data.get('conversations', {})
             self.last_mention_id = data.get('last_mention_id')
+            self.processed_mentions = set(data.get('processed_mentions', []))
             logger.info(f"Loaded conversation history with {len(self.conversation_history)} conversations")
             logger.info(f"Last processed mention ID: {self.last_mention_id}")
+            logger.info(f"Processed mentions count: {len(self.processed_mentions)}")
         except json.JSONDecodeError as e:
             error_msg = f"Error parsing conversation history file: {str(e)}"
             logger.error(error_msg)
@@ -175,13 +179,16 @@ class SocialClient:
             history_path = Path(CONVERSATION_HISTORY_FILE)
             history_path.parent.mkdir(parents=True, exist_ok=True)
             
+            recent_mentions = sorted(list(self.processed_mentions))[-1000:]
+            
             data = {
                 'conversations': self.conversation_history,
-                'last_mention_id': self.last_mention_id
+                'last_mention_id': self.last_mention_id,
+                'processed_mentions': recent_mentions
             }
             
             history_path.write_text(json.dumps(data, indent=2))
-            logger.info(f"Saved conversation history with {len(self.conversation_history)} conversations")
+            logger.info(f"Saved conversation history with {len(self.conversation_history)} conversations and {len(recent_mentions)} processed mentions")
         except Exception as e:
             error_msg = f"Error saving conversation history: {str(e)}"
             logger.error(error_msg)
@@ -412,14 +419,19 @@ class SocialClient:
             logger.info(f"Fetching mentions since {start_time_str} with since_id: {self.last_mention_id}")
             
             try:
-                mentions = self.twitter.get_users_mentions(
-                    id=self.twitter_me_id,
-                    start_time=start_time_str,
-                    tweet_fields=["author_id", "conversation_id", "created_at", "in_reply_to_user_id", "referenced_tweets"],
-                    expansions=["author_id", "referenced_tweets.id"],
-                    user_fields=["username", "name"],
-                    max_results=100
-                )
+                kwargs = {
+                    "id": self.twitter_me_id,
+                    "start_time": start_time_str,
+                    "tweet_fields": ["author_id", "conversation_id", "created_at", "in_reply_to_user_id", "referenced_tweets"],
+                    "expansions": ["author_id", "referenced_tweets.id"],
+                    "user_fields": ["username", "name"],
+                    "max_results": 100
+                }
+                
+                if self.last_mention_id:
+                    kwargs["since_id"] = self.last_mention_id
+                    
+                mentions = self.twitter.get_users_mentions(**kwargs)
             except tweepy.TooManyRequests as e:
                 error_msg = "Twitter API rate limit exceeded"
                 logger.warning(error_msg)
@@ -440,12 +452,15 @@ class SocialClient:
                 logger.info("No mentions to process after filtering")
                 return 0
                 
-            self.last_mention_id = mentions_list[-1].id
-            
             processed_count = 0
+            quote_retweet_count = 0
             
             for mention in mentions_list:
                 if mention.author_id == self.twitter_me_id:
+                    continue
+                
+                if mention.id in self.processed_mentions:
+                    logger.info(f"Skipping already processed mention {mention.id}")
                     continue
                 
                 conversation_id = mention.conversation_id
@@ -512,10 +527,11 @@ class SocialClient:
                     )
                     
                     processed_count += 1
+                    self.last_mention_id = mention.id
+                    self.processed_mentions.add(mention.id)
+                    self._save_conversation_history()
                 
                 time.sleep(2)
-            
-            self._save_conversation_history()
             
             logger.info(f"Processed {processed_count} mentions (including {quote_retweet_count} quote retweets)")
             return processed_count
@@ -614,7 +630,6 @@ class SocialClient:
             pnl_percent = position.get("pnl_percent", 0)
             entry_price = position.get("entry_price", 0)
             current_price = position.get("current_price", 0)
-            position_value = position.get("position_value", 0)
             market_session = position.get("market_session", "")
             price_change_1h = position.get("price_change_1h", 0)
             

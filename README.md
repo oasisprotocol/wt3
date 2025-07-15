@@ -1,6 +1,6 @@
 # WT3 (Wolf of Trading Tokens in TEE)
 
-An autonomous trading AI agent powered by Oasis Protocol's secure TEE infrastructure, executing strategies on Hyperliquid with integrated social intelligence.
+An autonomous trading AI agent powered by Oasis secure TEE infrastructure, executing strategies on Hyperliquid with integrated social intelligence.
 
 ## Overview
 
