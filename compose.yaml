@@ -1,9 +1,6 @@
 services:
   signal-service:
-    image: docker.io/ahmedatoasis/wt3-signal@sha256:4f3a96735e5650cee8ca14903cba5b84b700506d51da8eb32a37e2d726d27f6e
-    build:
-      context: .
-      dockerfile: Dockerfile.signal
+    image: docker.io/ahmedatoasis/wt3-signal@sha256:1fa7e32cf0708c3696f298f72b62789d4ca22822832d4c86cf2318f523a5a6a0
     platform: linux/amd64
     volumes:
       - /run/rofl-appd.sock:/run/rofl-appd.sock
@@ -15,7 +12,7 @@ services:
       - "8000:8000"
 
   wt3:
-    image: docker.io/ahmedatoasis/wt3@sha256:13875dbd6c236a9fc29258840df12d239dc768b890e8430d7e7647ac5a1726bf
+    image: docker.io/ahmedatoasis/wt3@sha256:b1d3f2c69732cae30fd41910d21147246bf7193fd6c0626a614e8712657a0772
     build:
       context: .
       dockerfile: Dockerfile

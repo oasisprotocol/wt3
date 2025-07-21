@@ -60,15 +60,15 @@ start_container() {
     load_env_vars
     
     if [ "$1" == "signal" ]; then
-        echo "Building and starting Signal Service container..."
-        docker build --platform linux/amd64 -f Dockerfile.signal -t docker.io/ahmedatoasis/wt3-signal .
+        echo "Starting Signal Service container..."
+        docker pull docker.io/ahmedatoasis/wt3-signal@sha256:4f3a96735e5650cee8ca14903cba5b84b700506d51da8eb32a37e2d726d27f6e
         docker run -d --name wt3-signal-service \
             -v /run/rofl-appd.sock:/run/rofl-appd.sock \
             -v /storage:/storage \
             -e AGE_PRIVATE_KEY=${AGE_PRIVATE_KEY} \
             -p 8000:8000 \
             --restart always \
-            docker.io/ahmedatoasis/wt3-signal
+            docker.io/ahmedatoasis/wt3-signal@sha256:4f3a96735e5650cee8ca14903cba5b84b700506d51da8eb32a37e2d726d27f6e
         echo "Signal Service container started. Use './scripts/docker-run.sh logs signal' to view logs."
     elif [ "$1" == "wt3" ]; then
         echo "Building and starting WT3 container..."
@@ -89,14 +89,14 @@ start_container() {
     else
         echo "Building and starting all containers..."
         # Start Signal Service first
-        docker build --platform linux/amd64 -f Dockerfile.signal -t docker.io/ahmedatoasis/wt3-signal .
+        docker pull docker.io/ahmedatoasis/wt3-signal@sha256:4f3a96735e5650cee8ca14903cba5b84b700506d51da8eb32a37e2d726d27f6e
         docker run -d --name wt3-signal-service \
             -v /run/rofl-appd.sock:/run/rofl-appd.sock \
             -v /storage:/storage \
             -e AGE_PRIVATE_KEY=${AGE_PRIVATE_KEY} \
             -p 8000:8000 \
             --restart always \
-            docker.io/ahmedatoasis/wt3-signal
+            docker.io/ahmedatoasis/wt3-signal@sha256:4f3a96735e5650cee8ca14903cba5b84b700506d51da8eb32a37e2d726d27f6e
             
         # Then start WT3
         docker build --platform linux/amd64 -f Dockerfile -t docker.io/ahmedatoasis/wt3 .
@@ -172,18 +172,17 @@ build_image() {
     check_env_file
     
     if [ "$1" == "signal" ]; then
-        echo "Rebuilding Signal Service Docker image..."
-        docker build --platform linux/amd64 -f Dockerfile.signal -t docker.io/ahmedatoasis/wt3-signal . --no-cache
-        echo "Signal Service image rebuilt. Use './scripts/docker-run.sh start signal' to start the container."
+        echo "Signal Service uses a pre-built image from DockerHub."
+        echo "To update, pull the latest image: docker pull docker.io/ahmedatoasis/wt3-signal@sha256:4f3a96735e5650cee8ca14903cba5b84b700506d51da8eb32a37e2d726d27f6e"
     elif [ "$1" == "wt3" ]; then
         echo "Rebuilding WT3 Docker image..."
         docker build --platform linux/amd64 -f Dockerfile -t docker.io/ahmedatoasis/wt3 . --no-cache
         echo "WT3 image rebuilt. Use './scripts/docker-run.sh start wt3' to start the container."
     else
-        echo "Rebuilding all Docker images..."
-        docker build --platform linux/amd64 -f Dockerfile.signal -t docker.io/ahmedatoasis/wt3-signal . --no-cache
+        echo "Rebuilding Docker images..."
+        echo "Signal Service uses a pre-built image from DockerHub."
         docker build --platform linux/amd64 -f Dockerfile -t docker.io/ahmedatoasis/wt3 . --no-cache
-        echo "All images rebuilt. Use './scripts/docker-run.sh start' to start the containers."
+        echo "WT3 image rebuilt. Use './scripts/docker-run.sh start' to start the containers."
     fi
 }
 
@@ -196,7 +195,7 @@ clean_docker() {
     echo "Cleaning all Docker artifacts..."
     docker stop wt3-signal-service wt3-main 2>/dev/null || true
     docker rm wt3-signal-service wt3-main 2>/dev/null || true
-    docker rmi docker.io/ahmedatoasis/wt3-signal docker.io/ahmedatoasis/wt3 2>/dev/null || true
+    docker rmi docker.io/ahmedatoasis/wt3 2>/dev/null || true
     echo "Docker artifacts cleaned. Use './scripts/docker-run.sh build' to rebuild the images."
 }
 
