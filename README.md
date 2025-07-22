@@ -61,7 +61,6 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 3. Install dependencies:
 ```bash
-pip install --upgrade pip
 pip install -r requirements.signal.txt
 ```
 
