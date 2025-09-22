@@ -2,14 +2,14 @@
 Signal client for the WT3 Agent.
 
 This module provides functionality for retrieving trading signals from the signal service,
-including market predictions, confidence levels, and trade decisions.
+including trade decisions and strategy parameters.
 """
 
 import logging
 import aiohttp
 import os
 import asyncio
-from typing import Dict, Optional, TypedDict, Literal
+from typing import Dict, Optional, TypedDict, Literal, List
 
 logger = logging.getLogger(__name__)
 
@@ -18,19 +18,13 @@ class StrategyData(TypedDict):
     position_size_coin: float
     leverage: float
     stop_loss: float
-    take_profit: float
+    stop_loss_levels: Optional[List[float]]
+    signal_id: Optional[str]
 
-class CurrentPosition(TypedDict):
-    """Current position data structure."""
-    size: float
-    direction: Literal['LONG', 'SHORT']
-    entry_price: Optional[float]
 
 class TradeDecision(TypedDict):
     """Trade decision data structure."""
-    action: Literal['open', 'close', 'close_and_reverse']
-    direction: Literal['long', 'short']
-    confidence: float
+    action: Literal['buy', 'sell', 'close']
     coin: str
     strategy: StrategyData
 
@@ -38,7 +32,6 @@ class SignalResponse(TypedDict):
     """Complete signal response structure."""
     timestamp: int
     trade_decision: Optional[TradeDecision]
-    current_position: Optional[CurrentPosition]
 
 class SignalError(Exception):
     """Base exception for signal client errors."""
@@ -164,8 +157,6 @@ class SignalClient:
                 
                 required_trade_fields = {
                     'action': str,
-                    'direction': str,
-                    'confidence': float,
                     'coin': str,
                     'strategy': dict
                 }
@@ -176,21 +167,13 @@ class SignalClient:
                     if not isinstance(trade_decision[field], field_type):
                         raise SignalValidationError(f"Invalid type for trade_decision.{field}: expected {field_type.__name__}, got {type(trade_decision[field]).__name__}")
                 
-                if trade_decision['action'] not in ('open', 'close', 'close_and_reverse'):
+                if trade_decision['action'] not in ('buy', 'sell', 'close'):
                     raise SignalValidationError(f"Invalid trade action: {trade_decision['action']}")
-                
-                if trade_decision['direction'] not in ('long', 'short'):
-                    raise SignalValidationError(f"Invalid trade direction: {trade_decision['direction']}")
-                
-                if not 0 <= trade_decision['confidence'] <= 1:
-                    raise SignalValidationError(f"Invalid confidence value: {trade_decision['confidence']}")
                 
                 strategy = trade_decision['strategy']
                 required_strategy_fields = {
                     'position_size_coin': float,
-                    'leverage': float,
-                    'stop_loss': float,
-                    'take_profit': float
+                    'leverage': float
                 }
                 
                 for field, field_type in required_strategy_fields.items():
@@ -198,6 +181,19 @@ class SignalClient:
                         raise SignalValidationError(f"Missing required field in strategy: {field}")
                     if not isinstance(strategy[field], field_type):
                         raise SignalValidationError(f"Invalid type for strategy.{field}: expected {field_type.__name__}, got {type(strategy[field]).__name__}")
+                
+                optional_strategy_fields = {
+                    'stop_loss': float,
+                    'stop_loss_levels': list,
+                    'signal_id': str
+                }
+                
+                for field, field_type in optional_strategy_fields.items():
+                    if field in strategy and strategy[field] is not None:
+                        if isinstance(field_type, float) and isinstance(strategy[field], (int, float)):
+                            continue
+                        if not isinstance(strategy[field], field_type):
+                            raise SignalValidationError(f"Invalid type for strategy.{field}: expected {field_type.__name__}, got {type(strategy[field]).__name__}")
             
             return data
             
@@ -208,11 +204,10 @@ class SignalClient:
             logger.error(error_msg)
             raise SignalValidationError(error_msg)
 
-    async def get_prediction(self, coin: str, max_retries: int = 3, retry_delay: float = 1.0) -> Optional[SignalResponse]:
-        """Get trading signal prediction for a specific coin.
+    async def get_prediction(self, max_retries: int = 3, retry_delay: float = 1.0) -> Optional[SignalResponse]:
+        """Get trading signal prediction from Moonward.
         
         Args:
-            coin (str): The coin symbol (e.g., 'BTC', 'ETH')
             max_retries (int): Maximum number of retry attempts
             retry_delay (float): Delay between retries in seconds
             
@@ -227,13 +222,13 @@ class SignalClient:
         
         while retry_count < max_retries:
             try:
-                url = f"{self.base_url}/signal/{coin}"
-                logger.info(f"Requesting prediction from {url} (attempt {retry_count + 1}/{max_retries})")
+                url = f"{self.base_url}/signal"
+                logger.debug(f"Requesting prediction from {url} (attempt {retry_count + 1}/{max_retries})")
                 
                 async with self.session.get(url) as response:
                     if response.status == 200:
                         data = await response.json()
-                        logger.info(f"Received prediction data: {data}")
+                        logger.debug(f"Received prediction data: {data}")
                         return self._validate_signal_response(data)
                     else:
                         error_msg = f"Signal service returned error: {response.status} - {await response.text()}"
@@ -265,7 +260,7 @@ class SignalClient:
         
         while retry_count < max_retries:
             try:
-                url = f"{self.fallback_url}/signal/{coin}"
+                url = f"{self.fallback_url}/signal"
                 logger.info(f"Requesting prediction from fallback {url} (attempt {retry_count + 1}/{max_retries})")
                 
                 async with self.session.get(url) as response:

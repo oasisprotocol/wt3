@@ -98,7 +98,7 @@ class MarketDataProvider:
         """
         try:
             symbol = f"{coin.upper()}USDT"
-            url = f"https://api.binance.us/api/v3/klines"
+            url = "https://api.binance.us/api/v3/klines"
             params = {
                 "symbol": symbol,
                 "interval": "1h",
@@ -130,6 +130,47 @@ class MarketDataProvider:
         except Exception as e:
             logger.warning(f"Error getting 1h price change for {coin} from Binance: {str(e)}")
             return 0.0
+
+    async def get_all_positions(self) -> list:
+        """Get all open positions across all coins.
+        
+        Returns:
+            list: List of position dictionaries with coin, size, and other details
+            
+        Raises:
+            MarketDataError: If position data cannot be retrieved
+        """
+        try:
+            await self.exchange_client.ensure_clients()
+            user_state = self.info.user_state(self.wallet.address)
+            
+            if not user_state or 'assetPositions' not in user_state:
+                logger.warning("No position data available")
+                return []
+            
+            positions = []
+            for position in user_state['assetPositions']:
+                pos_data = position.get('position', {})
+                size = float(pos_data.get('szi', 0))
+                
+                if size != 0:
+                    coin = pos_data.get('coin', 'UNKNOWN')
+                    entry_px = float(pos_data.get('entryPx', 0))
+                    positions.append({
+                        'coin': coin,
+                        'size': size,
+                        'entry_price': entry_px,
+                        'direction': 'LONG' if size > 0 else 'SHORT',
+                        'unrealized_pnl': float(pos_data.get('unrealizedPnl', 0)),
+                        'margin_used': float(pos_data.get('marginUsed', 0))
+                    })
+            
+            return positions
+            
+        except Exception as e:
+            error_msg = f"Error getting all positions: {str(e)}"
+            logger.error(error_msg)
+            raise MarketDataError(error_msg)
 
     async def get_entry_price(self, coin: str) -> float:
         """Get entry price for an existing position.
@@ -192,7 +233,7 @@ class MarketDataProvider:
             raise MarketDataError(error_msg)
 
     async def get_tick_size(self, coin: str) -> float:
-        """Get tick size for a coin.
+        """Get tick size for a coin from Hyperliquid metadata.
         
         Args:
             coin (str): The trading pair symbol (e.g., 'BTC', 'ETH')
@@ -203,26 +244,27 @@ class MarketDataProvider:
         Raises:
             MarketDataError: If tick size cannot be determined
         """
-        try:
-            coin_info = await self.get_coin_info(coin)
+        try:            
+            current_price = await self.get_current_price(coin)
             
-            px_step = None
-            if 'tickSize' in coin_info:
-                px_step = float(coin_info['tickSize'])
-            elif 'tickSz' in coin_info:
-                px_step = float(coin_info['tickSz'])
-            elif 'minPriceIncrement' in coin_info:
-                px_step = float(coin_info['minPriceIncrement'])
-            elif 'stepSize' in coin_info:
-                px_step = float(coin_info['stepSize'])
+            if current_price >= 10000:
+                px_step = 1.0
+            elif current_price >= 1000:
+                px_step = 0.1
+            elif current_price >= 100:
+                px_step = 0.01
+            elif current_price >= 10:
+                px_step = 0.001
+            elif current_price >= 1:
+                px_step = 0.0001
+            elif current_price >= 0.1:
+                px_step = 0.00001
+            elif current_price >= 0.01:
+                px_step = 0.000001
             else:
-                if coin.upper() == 'BTC':
-                    px_step = 1.0 
-                else:
-                    px_step = 0.01
-                logger.warning(f"Tick size not found for {coin}, using default: {px_step}")
+                px_step = 0.0000001
                 
-            logger.info(f"Using tick size {px_step} for {coin}")
+            logger.debug(f"Calculated tick size {px_step} for {coin} (price: ${current_price:.6f})")
             return px_step
         except Exception as e:
             error_msg = f"Error getting tick size for {coin}: {str(e)}"

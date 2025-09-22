@@ -1,9 +1,8 @@
 """
-Main entry point for running the WT3 trading agent.
+Main entry point for running the WT3 trading agent with Moonward Capital integration.
 
-This module implements the main trading loop and coordination between different
-components of the trading system, including signal processing, trade execution,
-and social media updates.
+This module implements the main trading loop with 15-second polling for Moonward signals
+and hourly social media recaps.
 """
 
 import asyncio
@@ -28,7 +27,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-coin = "BTC"
 
 
 class WT3Agent:
@@ -45,7 +43,7 @@ async def main() -> bool:
     """Main function that runs the trading agent in a loop.
     
     This function:
-    - Executes a trading cycle every 1 hour
+    - Executes a trading cycle every 15 seconds (polling Moonward signals)
     - Posts a recap tweet every hour
     - Runs social media tasks (check mentions, monitor whitelist accounts) every 30 minutes
     - Ensures social tasks run independently and don't interfere with trading cycles
@@ -56,50 +54,46 @@ async def main() -> bool:
     """
     logger.debug("Initializing main trading loop")
     logger.info("Starting WT3 trading agent")
+    logger.info("Polling interval: 15 seconds | Hourly recaps: Enabled")
     
     agent = WT3Agent()
     if agent.trading_state.last_tweet_time is None:
-        agent.trading_state.last_tweet_time = datetime.now() - timedelta(minutes=55)
+        agent.trading_state.last_tweet_time = datetime.utcnow() - timedelta(minutes=55)
     
-    last_trading_time = datetime.now() - timedelta(minutes=60)
-    last_social_tasks_time = datetime.now() - timedelta(minutes=9)
+    last_trading_time = datetime.utcnow()
+    last_social_tasks_time = datetime.utcnow() - timedelta(minutes=25)
     
     try:
         while agent.trading_state.is_running:
-            current_time = datetime.now()
-            
+            current_time = datetime.utcnow()
             time_since_last_social = current_time - last_social_tasks_time
-            run_social = time_since_last_social.total_seconds() >= 600
+            run_social = time_since_last_social.total_seconds() >= 1800  # 30 minutes
             
             time_since_last_trading = current_time - last_trading_time
-            run_trading = time_since_last_trading.total_seconds() >= 3600
+            run_trading = time_since_last_trading.total_seconds() >= 15  # 15 seconds for Moonward polling
             
             time_since_last_tweet = current_time - (agent.trading_state.last_tweet_time or (current_time - timedelta(hours=1)))
-            run_recap = time_since_last_tweet.total_seconds() >= 3600
+            run_recap = time_since_last_tweet.total_seconds() >= 3600  # 1 hour
             
             if run_trading:
-                logger.info("Starting trading cycle - Priority execution")
+                logger.debug("Polling for signals")
                 try:
-                    await trading_cycle(agent, coin)
+                    await trading_cycle(agent)
                     last_trading_time = current_time
                 except Exception as e:
                     logger.error(f"Error in trading cycle: {str(e)}")
                     logger.warning("Will retry in next interval")
-                
-                if run_social:
-                    logger.info("Brief pause before social media tasks")
-                    await asyncio.sleep(2)
             
             if run_recap:
                 logger.info("Time for hourly recap")
                 try:
-                    await post_hourly_recap(agent, coin)
+                    await post_hourly_recap(agent)
                 except Exception as e:
                     logger.error(f"Error posting hourly recap: {str(e)}")
                     logger.warning("Will retry in next interval")
             
             if run_social:
-                logger.info("Running social media tasks (10-minute cycle)")
+                logger.info("Running social media tasks (30-minute cycle)")
                 try:
                     await run_social_tasks()
                     last_social_tasks_time = current_time
@@ -107,13 +101,11 @@ async def main() -> bool:
                     logger.error(f"Error in social media tasks: {str(e)}")
                     logger.warning("Will retry in next interval")
             
-            next_social_check = max(0, 600 - time_since_last_social.total_seconds())
-            next_trading_check = max(0, 3600 - time_since_last_trading.total_seconds())
+            next_social_check = max(0, 1800 - time_since_last_social.total_seconds())
+            next_trading_check = max(0, 15 - time_since_last_trading.total_seconds())
             next_recap_check = max(0, 3600 - time_since_last_tweet.total_seconds())
 
-            sleep_time = min(300, max(60, min(next_social_check, next_trading_check, next_recap_check)))
-            logger.info(f"Next social check in {next_social_check/60:.1f}min, trading check in {next_trading_check/60:.1f}min, recap in {next_recap_check/60:.1f}min")
-            logger.info(f"Waiting {sleep_time}s before next check")
+            sleep_time = min(15, max(5, min(next_social_check, next_trading_check, next_recap_check)))
             await asyncio.sleep(sleep_time)
             
         return True

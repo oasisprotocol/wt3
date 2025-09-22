@@ -1,5 +1,5 @@
 """
-Trading cycle execution for the WT3 Agent.
+Trading cycle execution for the WT3 Agent with Moonward integration.
 
 This module handles the execution of individual trading cycles,
 including signal retrieval, trade execution, and state updates.
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-async def trading_cycle(agent: 'WT3Agent', coin: str):
+async def trading_cycle(agent: 'WT3Agent'):
     """Execute a single trading cycle.
     
     This function:
@@ -24,9 +24,25 @@ async def trading_cycle(agent: 'WT3Agent', coin: str):
     
     Args:
         agent (WT3Agent): The trading agent instance
-        coin (str): The trading pair symbol
     """
     try:
+        prediction = await agent.signal_client.get_prediction()
+        if not prediction:
+            logger.warning("No prediction received from signal service")
+            agent.trading_state.add_activity("NONE", "no_signal", {})
+            return
+            
+        logger.debug(f"Received prediction: {prediction}")
+        
+        trade_decision = prediction.get('trade_decision')
+        if not trade_decision:
+            logger.debug("No trade decision in signal - no action needed")
+            agent.trading_state.add_activity("NONE", "no_action", {})
+            return
+        
+        logger.info(f"Processing trade signal: {trade_decision.get('action')} for {trade_decision.get('coin')}")
+        coin = trade_decision.get('coin', 'UNKNOWN')
+        
         try:
             current_price = await agent.trading_tools.get_current_price(coin)
             position_size = await agent.trading_tools.get_position_size(coin)
@@ -56,61 +72,22 @@ async def trading_cycle(agent: 'WT3Agent', coin: str):
                 market_data["pnl_percent"] = pnl_percent
                 
         except Exception as e:
-            logger.warning(f"Could not retrieve all market data: {e}")
+            logger.warning(f"Could not retrieve market data for {coin}: {e}")
             market_data = {}
-        
-        prediction = await agent.signal_client.get_prediction(coin)
-        if not prediction:
-            logger.warning("No prediction received from signal service")
-            agent.trading_state.add_activity(coin, "no_signal", market_data)
-            return
-            
-        logger.info(f"Received prediction: {prediction}")
         
         signal_data = {}
         if "timestamp" in prediction:
             signal_data["signal_timestamp"] = prediction["timestamp"]
         
-        if "current_position" in prediction and prediction["current_position"]:
-            position_info = prediction["current_position"]
-            signal_data.update({
-                "position_size_from_signal": position_info["size"],
-                "position_direction_from_signal": position_info["direction"]
-            })
-            if "entry_price" in position_info:
-                signal_data["entry_price_from_signal"] = position_info["entry_price"]
-            logger.info(f"Current position from signal: {position_info['direction']} {position_info['size']} {coin}")
-        
         activity_data = {**market_data, **signal_data}
         
-        trade_decision = prediction.get('trade_decision')
-        if not trade_decision:
-            signal_position_direction = signal_data.get("position_direction_from_signal")
-            
-            if signal_position_direction:
-                logger.info(f"No trade decision in signal - holding current {signal_position_direction} position (from signal)")
-                hold_data = {**activity_data, 'direction': signal_position_direction}
-                agent.trading_state.add_activity(coin, "hold", hold_data)
-            elif position_size != 0:
-                logger.info(f"No trade decision in signal - holding current {position_direction} position")
-                hold_data = {**activity_data, 'direction': position_direction}
-                agent.trading_state.add_activity(coin, "hold", hold_data)
-            else:
-                logger.info("No trade decision in signal - no action needed")
-                agent.trading_state.add_activity(coin, "no_action", activity_data)
-            return
-            
         try:
             result = await agent.trading_tools.execute_trade_signal(prediction)
             logger.info(f"Trade execution result: {result}")
             
             action = trade_decision.get('action', 'unknown')
-            direction = trade_decision.get('direction', 'unknown')
-            confidence = trade_decision.get('confidence', 0.0)
             
             trade_data = {
-                'direction': direction,
-                'confidence': confidence,
                 'action_type': action
             }
             
@@ -124,12 +101,10 @@ async def trading_cycle(agent: 'WT3Agent', coin: str):
             
             combined_data = {**activity_data, **trade_data}
             
-            if action == 'open':
+            if action == 'buy' or action == 'sell':
                 agent.trading_state.add_activity(coin, "executed", combined_data)
             elif action == 'close':
                 agent.trading_state.add_activity(coin, "closed", combined_data)
-            elif action == 'close_and_reverse':
-                agent.trading_state.add_activity(coin, "reversed", combined_data)
                 
         except Exception as e:
             logger.error(f"Error executing trade: {e}")
@@ -138,4 +113,4 @@ async def trading_cycle(agent: 'WT3Agent', coin: str):
             
     except Exception as e:
         logger.error(f"Error in trading cycle: {e}")
-        agent.trading_state.add_activity(coin, "error", {'error': str(e)})
+        agent.trading_state.add_activity("UNKNOWN", "error", {'error': str(e)})

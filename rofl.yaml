@@ -1,5 +1,5 @@
 name: WT3
-version: 1.4.3
+version: 2.0.1
 repository: https://github.com/oasisprotocol/wt3
 author: Oasis Protocol Foundation <wt3@oasisprotocol.org>
 license: Apache-2.0
@@ -35,8 +35,8 @@ deployments:
           min_tcb_evaluation_data_number: 18
           tdx: {}
       enclaves:
-        - SspzJuc6on+q0Cf0T6WySzNETT4IVO6mKDYntqbmRi4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-        - G98TE2FEKZFgcYRznViIz05KCvmz9wRBAi5YlEfMhHwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - axBRhr0Gl6i1jh9hrqvqo85rntev+OuPQi0qb3oVkMEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - RV0VNdolIbrQ373WetBvnAmmhXbmGNNPntxw+jOFhfwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
       endorsements:
         - node: aasPic6KJpQf3w6DTjaDu8Pwwke9k0vPCjuZQ5HQQQQ=
       fees: endorsing_node
@@ -58,6 +58,8 @@ deployments:
         value: pGJwa1ggShZPFJb0rWeJLn0GdYakAF13nCg8JgKqCBKRmGcl/TRkbmFtZVgi6ey3kSR5XVzigb4Qb6+a/gETDueOV5iOcsz+7mlRMLwEomVub25jZU+Smd/fPIaMXW9j8xB9241ldmFsdWVYKjn85TOhV+gypVs/JjRe5D+uKEEkT78DxDZJC/HTAbmU+JitLrhTaJ0G2w==
       - name: AGE_PRIVATE_KEY
         value: pGJwa1gg3eUzqhDGI/qi8m1iC9Zd4BCBhMku5igt2l1QWdYnxnBkbmFtZVgfrvCjJV+R2RSctaOev10Tg5tXrUyfylC21sQIoSoUumVub25jZU9/mpZTAhh7qbVgRZRMsT1ldmFsdWVYWjmozrW+cSX+yooX73jT/Zr2c49jglDin4akg/4JLYnCIq8UoI2xiSehv/cTWZt19z06u6iw4+vWGXhjkH806OGCHzI2J2g6o+KssZBn2kdOmcmZXz9qsg3lwg==
+      - name: MOONWARD_API_KEY
+        value: pGJwa1ggHECGzYr2IN3Q1TJyryKnUu9HBaLF9rN96lnumVe3QWlkbmFtZVgggkyP9cCWGKkDcvGYx3dkkKgRAsiUaEMy4HTUo9F/efNlbm9uY2VP5WC7+tQsLxYcEIX//I25ZXZhbHVlWDMg5I/2bGUaQr3CIyIxQOxmiP6QySq1PdB4ti2PEBDNRaZ42SQCh7MfdhqYDZ1qGFEHBtY=
   testnet:
     app_id: rofl1qzp3c6zt96r5c5sw0sljlvepwgg4u23atgh4legq
     network: testnet
@@ -94,3 +96,5 @@ deployments:
         value: pGJwa1ggcJHt6xMZ/F2vJpUkrDcjSAnnJBKu7xHt+5nQ0kY5cTlkbmFtZVgr3dcdOJ8CoZEI/59vPeBfTx3ShhHTZldmiyHnHbQQuWNRnXqFcQJpy3/UZmVub25jZU/kNDVKeMKnXKunJIYFeotldmFsdWVYPet5x+SAwkEa0N6Rr7CQ8FQWreiCYj9jBxxDdV8uUtvHvwRh5HUplzpPnSC8mCJN3C4VVf5mYNbNPKeTVVE=
       - name: SIGNAL_SERVICE_URL
         value: pGJwa1ggSqQHP87E0U7aZTWAiLqTVbrIE+7pDacbB9pmZF3E9GBkbmFtZVgiLp5v7rpmvejWzYsTHz6WNbnFDa8Mb+8xNQ+eo2G3GQUdu2Vub25jZU+XSCrh/pq9yBHaC2FPRgJldmFsdWVYKkZivxw1eH/p9n0CEGYqPCZimuMqLhCoKHqrnuurwBeVKpNPIX8VeyzizA==
+      - name: MOONWARD_API_KEY
+        value: pGJwa1gg2a00lUFLappJk8YoVDOnJiU9GLNCoPh/aoMMzDygElJkbmFtZVggEIa5DZCZjOaK945b0j4cpPGKS2uCJG3jsWLrGYVt59tlbm9uY2VPgsxW2pj/LdeKWPtoWP4fZXZhbHVlWDOxyVXXqJDDMePv3SAj6rJrU4tCp5cE/2QWAOKcdFesSHbBHbTNM0AG2LY+gXupJmqrXB0=
