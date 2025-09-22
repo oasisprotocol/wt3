@@ -84,7 +84,7 @@ class TradingState:
         
     def clear_activities(self) -> None:
         """Clear all trading activities.
-        
+
         Raises:
             TradingStateError: If activities cannot be cleared
         """
@@ -92,5 +92,30 @@ class TradingState:
             self.trade_activities.clear()
         except Exception as e:
             error_msg = f"Failed to clear activities: {str(e)}"
+            logger.error(error_msg)
+            raise TradingStateError(error_msg)
+
+    def get_recent_activities(self, hours: int = 1) -> List[Dict[str, Any]]:
+        """Get trading activities from the last N hours.
+
+        Args:
+            hours (int, optional): Number of hours to look back. Defaults to 1.
+
+        Returns:
+            List[Dict[str, Any]]: List of activities from the specified time period
+
+        Raises:
+            TradingStateError: If activities cannot be retrieved
+        """
+        try:
+            from datetime import timedelta
+            cutoff_time = datetime.now() - timedelta(hours=hours)
+            recent_activities = [
+                activity for activity in self.trade_activities
+                if activity.get('timestamp', datetime.min) > cutoff_time
+            ]
+            return recent_activities
+        except Exception as e:
+            error_msg = f"Failed to get recent activities from state: {str(e)}"
             logger.error(error_msg)
             raise TradingStateError(error_msg)
