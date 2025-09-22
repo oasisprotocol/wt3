@@ -194,20 +194,60 @@ class SocialClient:
             logger.error(error_msg)
             raise ConversationError(error_msg)
 
+    async def post_hourly_recap(self, summary_data: Dict) -> Dict[str, Any]:
+        """Post an hourly recap based on summary data.
+
+        Args:
+            summary_data (Dict): Summary data containing positions, activities, etc.
+
+        Returns:
+            Dict[str, Any]: Result dictionary with 'success' and optional 'error' fields
+        """
+        try:
+            positions = summary_data.get('positions', [])
+            recent_activities = summary_data.get('recent_activities', [])
+
+            position_info = {}
+            if positions:
+                main_position = summary_data.get('main_coin')
+                if main_position:
+                    position_info = {
+                        'has_position': True,
+                        'coin': summary_data.get('main_coin'),
+                        'direction': summary_data.get('main_direction'),
+                        'size': summary_data.get('main_size'),
+                        'price_change_1h': summary_data.get('price_change_1h', 0)
+                    }
+            else:
+                position_info = {'has_position': False}
+
+            activities_summary = {
+                'activity_count': summary_data.get('activity_count', 0),
+                'market_session': summary_data.get('market_session', 'US'),
+                'total_value': summary_data.get('total_value', 0)
+            }
+
+            result = await self.generate_hourly_recap(position_info, activities_summary)
+            return {'success': True, 'result': result}
+
+        except Exception as e:
+            logger.error(f"Error in post_hourly_recap: {str(e)}")
+            return {'success': False, 'error': str(e)}
+
     async def generate_hourly_recap(
         self,
         position_info: Dict,
         activities_summary: Dict
     ) -> str:
         """Generate and post an hourly recap tweet summarizing trading activities.
-        
+
         Args:
             position_info (Dict): Dictionary containing current position details
             activities_summary (Dict): Summary of trading activities in the past hour
-            
+
         Returns:
             str: The result of posting the tweet or error message if failed
-            
+
         Raises:
             ContentGenerationError: If content generation fails
             TwitterAPIError: If tweet posting fails
@@ -218,7 +258,7 @@ class SocialClient:
                 activities_summary=activities_summary
             )
             return self._tweet(tweet_content)
-            
+
         except ContentGenerationError as e:
             logger.error(f"Error generating recap content: {str(e)}")
             raise

@@ -13,7 +13,7 @@ services:
       - "8000:8000"
 
   wt3:
-    image: docker.io/ahmedatoasis/wt3@sha256:9c64aaa1929ffa78b686fb4eaa3418ab9d0218e67a65e417fa261d52d683db56
+    image: docker.io/ahmedatoasis/wt3@sha256:9a5519e9f5a4992927b3d9c3a6221812d46517876ea3921e7f7c750c3d07580f
     build:
       context: .
       dockerfile: Dockerfile
