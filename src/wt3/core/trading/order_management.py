@@ -253,8 +253,63 @@ class OrderManager:
                 return f"Successfully cancelled {total_cancelled} orders for {coin}"
             else:
                 return f"No orders found to cancel for {coin}"
-                
+
         except Exception as e:
             error_msg = f"Error cancelling orders: {str(e)}"
+            logger.error(error_msg)
+            raise OrderError(error_msg)
+
+    async def close_all_positions(self) -> str:
+        """Close all open positions across all coins.
+
+        This is a one-time utility function that closes all open positions.
+        Useful for emergency shutdowns or cleanup operations.
+
+        Returns:
+            str: Result message indicating number of positions closed
+
+        Raises:
+            OrderError: If position closing fails
+        """
+        try:
+            await self.exchange_client.ensure_clients()
+
+            all_positions = await self.market_data.get_all_positions()
+
+            if not all_positions:
+                logger.info("No open positions to close")
+                return "No open positions to close"
+
+            closed_count = 0
+            failed_count = 0
+            results = []
+
+            logger.info(f"Found {len(all_positions)} open positions to close")
+
+            for position in all_positions:
+                coin = position['coin']
+                size = position['size']
+                direction = position['direction']
+
+                try:
+                    logger.info(f"Closing {direction} position: {abs(size)} {coin}")
+                    result = await self.close_position(coin)
+                    results.append(f"✓ {coin}: {result}")
+                    closed_count += 1
+                except Exception as e:
+                    error_msg = f"✗ {coin}: Failed to close - {str(e)}"
+                    logger.error(error_msg)
+                    results.append(error_msg)
+                    failed_count += 1
+
+            summary = f"Closed {closed_count} positions"
+            if failed_count > 0:
+                summary += f", {failed_count} failed"
+
+            logger.info(summary)
+            return summary
+
+        except Exception as e:
+            error_msg = f"Error closing all positions: {str(e)}"
             logger.error(error_msg)
             raise OrderError(error_msg)

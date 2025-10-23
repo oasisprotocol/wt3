@@ -41,24 +41,33 @@ class WT3Agent:
 
 async def main() -> bool:
     """Main function that runs the trading agent in a loop.
-    
+
     This function:
+    - Closes all existing positions on startup
     - Executes a trading cycle every 15 seconds (polling Moonward signals)
     - Posts a recap tweet every hour
     - Runs social media tasks (check mentions, monitor whitelist accounts) every 30 minutes
     - Ensures social tasks run independently and don't interfere with trading cycles
     - Handles graceful shutdown on system signals
-    
+
     Returns:
         bool: True if the agent completed successfully, False otherwise
     """
     logger.debug("Initializing main trading loop")
     logger.info("Starting WT3 trading agent")
     logger.info("Polling interval: 15 seconds | Hourly recaps: Enabled")
-    
+
     agent = WT3Agent()
     if agent.trading_state.last_tweet_time is None:
         agent.trading_state.last_tweet_time = datetime.utcnow() - timedelta(minutes=55)
+
+    # logger.info("STARTUP: Closing all existing positions")
+    # try:
+    #     result = await agent.trading_tools.close_all_positions()
+    #     logger.info(f"STARTUP: {result}")
+    # except Exception as e:
+    #     logger.error(f"STARTUP: Error closing positions: {str(e)}")
+    #     logger.warning("STARTUP: Continuing with main loop despite error")
     
     last_trading_time = datetime.utcnow()
     last_social_tasks_time = datetime.utcnow() - timedelta(minutes=25)

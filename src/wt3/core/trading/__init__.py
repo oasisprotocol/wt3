@@ -72,7 +72,11 @@ class TradeTools:
     async def cancel_all_orders(self, coin: str) -> str:
         """Cancel all open orders for a given coin."""
         return await self.order_manager.cancel_all_orders(coin)
-    
+
+    async def close_all_positions(self) -> str:
+        """Close all open positions across all coins."""
+        return await self.order_manager.close_all_positions()
+
     async def execute_trade_signal(self, signal: dict) -> str:
         """Execute trade based on signal from signal service."""
         return await self.signal_executor.execute_trade_signal(signal)

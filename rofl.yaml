@@ -24,7 +24,7 @@ deployments:
     app_id: rofl1qpdzzm4h73gtes04xjn4whan84s3k33l5gx787l2
     network: mainnet
     paratime: sapphire
-    admin: wt3_admin
+    admin: testing
     trust_root:
       height: 24140280
       hash: 67af7917bcb16bee0769bbd32a2c74b0a840bd5233ba684f10ef5695565d4f8f
@@ -35,8 +35,8 @@ deployments:
           min_tcb_evaluation_data_number: 18
           tdx: {}
       enclaves:
-        - qTvykgfoqJY+TuaEDyF/eQ2yK+UWs4vrp+yBvtkul7QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-        - kido8IdBEWxkryCo6+vaF0Cw5witGxy26XYn+X0riNYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - VRKxJV1z6+S2x6HBDlYM4+yVq9XuAbHd8yUhEN2krCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - +rzaApfrJLh2f3Bjcc+cUddQX33hhMdqMViMcz/JS6wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
       endorsements:
         - node: aasPic6KJpQf3w6DTjaDu8Pwwke9k0vPCjuZQ5HQQQQ=
       fees: endorsing_node
@@ -64,7 +64,7 @@ deployments:
     app_id: rofl1qzp3c6zt96r5c5sw0sljlvepwgg4u23atgh4legq
     network: testnet
     paratime: sapphire
-    admin: wt3_admin
+    admin: testing
     trust_root:
       height: 25773089
       hash: 6e893c20e05a302b3edc828e51b892510a0fbae568ced68ce2b3c814949b007c
