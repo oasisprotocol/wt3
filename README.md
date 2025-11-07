@@ -249,7 +249,7 @@ Returns service status.
 
 #### Get Trading Signal
 ```
-GET /signal/<coin>
+GET /signal
 ```
 Returns trading signal for specified cryptocurrency.
 
@@ -327,7 +327,6 @@ wt3/
 ## Data Persistence
 
 WT3 maintains the following persistent data:
-- `trade_history.csv` - Complete trading history
 - `conversation_history.json` - Social media interactions
 - Position state and market data
 

@@ -61,9 +61,9 @@ class TradeTools:
         return await self.market_data.get_entry_price(coin)
     
     async def open_position(self, coin: str, is_long: bool, size: float, 
-                           stop_loss: float, take_profit: float) -> str:
-        """Open a new position with stop loss and take profit orders."""
-        return await self.order_manager.open_position(coin, is_long, size, stop_loss, take_profit)
+                           stop_loss: float) -> str:
+        """Open a new position with stop loss order."""
+        return await self.order_manager.open_position(coin, is_long, size, stop_loss)
     
     async def close_position(self, coin: str) -> str:
         """Close an existing position."""
@@ -72,7 +72,11 @@ class TradeTools:
     async def cancel_all_orders(self, coin: str) -> str:
         """Cancel all open orders for a given coin."""
         return await self.order_manager.cancel_all_orders(coin)
-    
+
+    async def close_all_positions(self) -> str:
+        """Close all open positions across all coins."""
+        return await self.order_manager.close_all_positions()
+
     async def execute_trade_signal(self, signal: dict) -> str:
         """Execute trade based on signal from signal service."""
         return await self.signal_executor.execute_trade_signal(signal)

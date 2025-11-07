@@ -6,8 +6,6 @@ and handling stop-loss/take-profit orders on the exchange.
 """
 
 import logging
-import math
-from typing import Dict, Any
 
 from .exceptions import OrderError, MarketDataError
 
@@ -35,20 +33,18 @@ class OrderManager:
         coin: str,
         is_long: bool,
         size: float,
-        stop_loss: float,
-        take_profit: float
+        stop_loss: float
     ) -> str:
-        """Open a new position with stop loss and take profit orders.
+        """Open a new position with stop loss order.
         
-        Uses limit orders for better execution prices and automatically places
-        stop-loss and take-profit orders for risk management.
+        Uses MARKET orders for immediate execution as required by signal provider.
+        Automatically places stop-loss order for risk management.
         
         Args:
             coin (str): The trading pair symbol (e.g., 'BTC', 'ETH')
             is_long (bool): True for long position, False for short position
             size (float): Position size in coin units
             stop_loss (float): Stop loss price level in USD
-            take_profit (float): Take profit price level in USD
             
         Returns:
             str: Result message indicating success or failure
@@ -70,31 +66,18 @@ class OrderManager:
                 raise OrderError(f"Position size too small to execute: {size} {coin}")
                         
             stop_loss = round(stop_loss / px_step) * px_step
-            take_profit = round(take_profit / px_step) * px_step
             
-            logger.info(f"Rounded stop loss to {stop_loss} and take profit to {take_profit}")
+            logger.info(f"Rounded stop loss to {stop_loss}")
                                                 
             current_price = await self.market_data.get_current_price(coin)
             if current_price <= 0:
                 raise MarketDataError(f"Failed to get current price for {coin}")
-                
-            limit_price = current_price
-            if is_long:
-                limit_price = round((current_price * 1.001) / px_step) * px_step
-            else:
-                limit_price = round((current_price * 0.999) / px_step) * px_step
                                     
-            logger.info(f"Opening {'LONG' if is_long else 'SHORT'} position: {size} {coin} (limit order at ${limit_price})")
+            logger.info(f"Opening {'LONG' if is_long else 'SHORT'} position: {size} {coin} (MARKET order)")
             
-            order_result = self.exchange.order(
-                name=coin,
-                is_buy=is_long,
-                sz=size,
-                limit_px=limit_price,
-                order_type={"limit": {"tif": "Gtc"}}
-            )
+            order_result = self.exchange.market_open(coin, is_long, size, None, 0.01)
             
-            logger.info(f"Limit order result: {order_result}")
+            logger.info(f"Market order result: {order_result}")
             
             if order_result.get('status') != 'ok':
                 raise OrderError(f"Failed to open position: {order_result}")
@@ -108,65 +91,50 @@ class OrderManager:
                 raise OrderError(f"Failed to open position: {error_msg}")
             
             try:
-                stop_order_type = {
-                    "trigger": {
-                        "triggerPx": stop_loss,
-                        "isMarket": True,
-                        "tpsl": "sl"
+                if stop_loss and stop_loss > 0:
+                    stop_order_type = {
+                        "trigger": {
+                            "triggerPx": stop_loss,
+                            "isMarket": True,
+                            "tpsl": "sl"
+                        }
                     }
-                }
-                
-                stop_result = self.exchange.order(
-                    name=coin,
-                    is_buy=not is_long,
-                    sz=size,
-                    limit_px=stop_loss,
-                    order_type=stop_order_type,
-                    reduce_only=True
-                )
-                
-                logger.info(f"Stop loss market order result: {stop_result}")
-                
-                tp_order_type = {
-                    "trigger": {
-                        "triggerPx": take_profit,
-                        "isMarket": True,
-                        "tpsl": "tp"
-                    }
-                }
-                
-                tp_result = self.exchange.order(
-                    name=coin,
-                    is_buy=not is_long,
-                    sz=size,
-                    limit_px=take_profit,
-                    order_type=tp_order_type,
-                    reduce_only=True
-                )
-                
-                logger.info(f"Take profit market order result: {tp_result}")
+                    
+                    stop_result = self.exchange.order(
+                        name=coin,
+                        is_buy=not is_long,
+                        sz=size,
+                        limit_px=stop_loss,
+                        order_type=stop_order_type,
+                        reduce_only=True
+                    )
+                    
+                    logger.info(f"Stop loss market order result: {stop_result}")
             except Exception as e:
-                logger.error(f"Error setting stop loss/take profit: {e}")
-                raise OrderError(f"Failed to set stop loss/take profit: {str(e)}")
+                logger.error(f"Error setting stop loss: {e}")
+                raise OrderError(f"Failed to set stop loss: {str(e)}")
             
+            sl_msg = f"${stop_loss:.2f}" if stop_loss is not None and stop_loss > 0 else "None"
             return (
-                f"Successfully opened {'LONG' if is_long else 'SHORT'} position: {size} {coin} (limit order) "
-                f"with SL: ${stop_loss:.2f}, TP: ${take_profit:.2f}"
+                f"Successfully opened {'LONG' if is_long else 'SHORT'} position: {size} {coin} (market order) "
+                f"with SL: {sl_msg}"
             )
             
         except (OrderError, MarketDataError) as e:
             raise
         except Exception as e:
+            import traceback
             error_msg = f"Error opening position: {str(e)}"
             logger.error(error_msg)
+            logger.error(f"Traceback: {traceback.format_exc()}")
             raise OrderError(error_msg)
 
     async def close_position(self, coin: str) -> str:
-        """Close an existing position using limit orders for better execution prices.
+        """Close an existing position using MARKET orders for immediate execution.
         
         This method:
         1. Cancels any existing open orders for the coin
-        2. Places a limit order to close the position at a slightly better price
+        2. Places a MARKET order to close the position immediately
         3. Handles both long and short positions appropriately
         
         Args:
@@ -198,32 +166,17 @@ class OrderManager:
             current_price = await self.market_data.get_current_price(coin)
             if current_price <= 0:
                 raise MarketDataError(f"Failed to get current price for {coin}")
-                
-            px_step = await self.market_data.get_tick_size(coin)
             
-            limit_price = current_price
-            if is_long:
-                limit_price = round((current_price * 0.999) / px_step) * px_step
-            else:
-                limit_price = round((current_price * 1.001) / px_step) * px_step
+            logger.info(f"Closing {'LONG' if is_long else 'SHORT'} position: {size} {coin} (MARKET order)")
             
-            logger.info(f"Closing {'LONG' if is_long else 'SHORT'} position: {size} {coin} (limit order at ${limit_price})")
+            order_result = self.exchange.market_close(coin)
             
-            order_result = self.exchange.order(
-                name=coin.upper(),
-                is_buy=not is_long,
-                sz=size,
-                limit_px=limit_price,
-                order_type={"limit": {"tif": "Gtc"}},
-                reduce_only=True
-            )
-            
-            logger.info(f"Limit close order result: {order_result}")
+            logger.info(f"Market close order result: {order_result}")
             
             if order_result.get('status') != 'ok':
                 raise OrderError(f"Failed to close position: {order_result}")
             
-            return f"Successfully placed order to close {'LONG' if is_long else 'SHORT'} position: {size} {coin} (limit order at ${limit_price})"
+            return f"Successfully closed {'LONG' if is_long else 'SHORT'} position: {size} {coin} (MARKET order)"
             
         except (OrderError, MarketDataError) as e:
             raise
@@ -300,8 +253,63 @@ class OrderManager:
                 return f"Successfully cancelled {total_cancelled} orders for {coin}"
             else:
                 return f"No orders found to cancel for {coin}"
-                
+
         except Exception as e:
             error_msg = f"Error cancelling orders: {str(e)}"
+            logger.error(error_msg)
+            raise OrderError(error_msg)
+
+    async def close_all_positions(self) -> str:
+        """Close all open positions across all coins.
+
+        This is a one-time utility function that closes all open positions.
+        Useful for emergency shutdowns or cleanup operations.
+
+        Returns:
+            str: Result message indicating number of positions closed
+
+        Raises:
+            OrderError: If position closing fails
+        """
+        try:
+            await self.exchange_client.ensure_clients()
+
+            all_positions = await self.market_data.get_all_positions()
+
+            if not all_positions:
+                logger.info("No open positions to close")
+                return "No open positions to close"
+
+            closed_count = 0
+            failed_count = 0
+            results = []
+
+            logger.info(f"Found {len(all_positions)} open positions to close")
+
+            for position in all_positions:
+                coin = position['coin']
+                size = position['size']
+                direction = position['direction']
+
+                try:
+                    logger.info(f"Closing {direction} position: {abs(size)} {coin}")
+                    result = await self.close_position(coin)
+                    results.append(f"✓ {coin}: {result}")
+                    closed_count += 1
+                except Exception as e:
+                    error_msg = f"✗ {coin}: Failed to close - {str(e)}"
+                    logger.error(error_msg)
+                    results.append(error_msg)
+                    failed_count += 1
+
+            summary = f"Closed {closed_count} positions"
+            if failed_count > 0:
+                summary += f", {failed_count} failed"
+
+            logger.info(summary)
+            return summary
+
+        except Exception as e:
+            error_msg = f"Error closing all positions: {str(e)}"
             logger.error(error_msg)
             raise OrderError(error_msg)
