@@ -56,7 +56,8 @@ class SignalClient:
         """
         try:
             self.base_url = os.getenv("SIGNAL_SERVICE_URL")
-            self.fallback_url = "http://127.0.0.1:8001"
+            self.fallback_url = "http://signal-service:8001"
+
             self._session = None
             self._using_fallback = False
             logger.info(f"Signal client initialized with base URL: {self.base_url}")
