@@ -17,7 +17,8 @@ from .core.orchestration import (
     TradingState,
     trading_cycle,
     post_hourly_recap,
-    run_social_tasks
+    run_social_tasks,
+    post_pnl_recap
 )
 
 logging.basicConfig(
@@ -60,6 +61,12 @@ async def main() -> bool:
     agent = WT3Agent()
     if agent.trading_state.last_tweet_time is None:
         agent.trading_state.last_tweet_time = datetime.utcnow() - timedelta(minutes=55)
+    if agent.trading_state.last_daily_pnl_time is None:
+        agent.trading_state.last_daily_pnl_time = datetime.utcnow() - timedelta(hours=23)
+    if agent.trading_state.last_weekly_pnl_time is None:
+        agent.trading_state.last_weekly_pnl_time = datetime.utcnow() - timedelta(days=6)
+    if agent.trading_state.last_monthly_pnl_time is None:
+        agent.trading_state.last_monthly_pnl_time = datetime.utcnow() - timedelta(days=29)
 
     # logger.info("STARTUP: Closing all existing positions")
     # try:
@@ -100,7 +107,40 @@ async def main() -> bool:
                 except Exception as e:
                     logger.error(f"Error posting hourly recap: {str(e)}")
                     logger.warning("Will retry in next interval")
-            
+
+            time_since_last_daily_pnl = current_time - (agent.trading_state.last_daily_pnl_time or (current_time - timedelta(days=1)))
+            run_daily_pnl = time_since_last_daily_pnl.total_seconds() >= 86400
+
+            if run_daily_pnl:
+                logger.info("Time for daily PnL recap")
+                try:
+                    await post_pnl_recap(agent, "day")
+                except Exception as e:
+                    logger.error(f"Error posting daily PnL recap: {str(e)}")
+                    logger.warning("Will retry in next interval")
+
+            time_since_last_weekly_pnl = current_time - (agent.trading_state.last_weekly_pnl_time or (current_time - timedelta(weeks=1)))
+            run_weekly_pnl = time_since_last_weekly_pnl.total_seconds() >= 604800
+
+            if run_weekly_pnl:
+                logger.info("Time for weekly PnL recap")
+                try:
+                    await post_pnl_recap(agent, "week")
+                except Exception as e:
+                    logger.error(f"Error posting weekly PnL recap: {str(e)}")
+                    logger.warning("Will retry in next interval")
+
+            time_since_last_monthly_pnl = current_time - (agent.trading_state.last_monthly_pnl_time or (current_time - timedelta(days=30)))
+            run_monthly_pnl = time_since_last_monthly_pnl.total_seconds() >= 2592000
+
+            if run_monthly_pnl:
+                logger.info("Time for monthly PnL recap")
+                try:
+                    await post_pnl_recap(agent, "month")
+                except Exception as e:
+                    logger.error(f"Error posting monthly PnL recap: {str(e)}")
+                    logger.warning("Will retry in next interval")
+
             if run_social:
                 logger.info("Running social media tasks (30-minute cycle)")
                 try:
