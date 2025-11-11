@@ -1,5 +1,5 @@
 name: WT3
-version: 2.0.1
+version: 2.2.1
 repository: https://github.com/oasisprotocol/wt3
 author: Oasis Protocol Foundation <wt3@oasisprotocol.org>
 license: Apache-2.0
@@ -35,8 +35,8 @@ deployments:
           min_tcb_evaluation_data_number: 18
           tdx: {}
       enclaves:
-        - p4O+uh2sefj0bzzGGYJvnBG/gFVXwwDmqgXPBIvxR50AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-        - zZvEzFtR8dy4Y3d5sellPomskbZvjCDC+mVD6J/87NsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - q5o8rBEzvhk9fWsHFha68CAJaMUaGYY87TTg5sD4yQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - JdKKXBfcV3tpwXXrPOroUrmapy2H3QAER89JXHmDfjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
       endorsements:
         - node: aasPic6KJpQf3w6DTjaDu8Pwwke9k0vPCjuZQ5HQQQQ=
       fees: endorsing_node
