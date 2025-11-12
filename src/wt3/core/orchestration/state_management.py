@@ -23,16 +23,19 @@ class TradingState:
     
     def __init__(self, max_activities: int = 20):
         """Initialize trading state.
-        
+
         Args:
             max_activities (int, optional): Maximum number of activities to store. Defaults to 20.
-            
+
         Raises:
             TradingStateError: If state initialization fails
         """
         try:
             self.trade_activities: Deque[Dict[str, Any]] = deque(maxlen=max_activities)
             self.last_tweet_time: Optional[datetime] = None
+            self.last_daily_pnl_time: Optional[datetime] = None
+            self.last_weekly_pnl_time: Optional[datetime] = None
+            self.last_monthly_pnl_time: Optional[datetime] = None
             self.is_running = True
         except Exception as e:
             error_msg = f"Failed to initialize trading state: {str(e)}"

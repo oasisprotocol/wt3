@@ -2,11 +2,14 @@ FROM python:3.11.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --from=ghcr.io/astral-sh/uv:0.9.8 /uv /uvx /bin/
+
+COPY pyproject.toml uv.lock* README.md ./
+
+RUN uv sync --frozen --no-cache
 
 COPY . .
 
 ENV PYTHONPATH="/app"
 
-CMD ["python", "-m", "src.wt3"]
+CMD ["uv", "run", "python", "-m", "src.wt3"]

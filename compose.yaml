@@ -11,7 +11,7 @@ services:
     restart: always
 
   wt3:
-    image: docker.io/ahmedatoasis/wt3@sha256:e2c28f4c8a4a89ac09d1f3297c288d7aff08b3ff28d566049abf797e5e6d63c2
+    image: docker.io/ahmedatoasis/wt3@sha256:5433e3bdde48564b1e4d19669b0137ff7ca1d42dbb97bfbce6d4e9463b8933ed
     build:
       context: .
       dockerfile: Dockerfile

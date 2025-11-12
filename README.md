@@ -36,7 +36,8 @@ Both services run within the Oasis ROFL framework, ensuring secure key managemen
 ## Prerequisites
 
 - Docker and Docker Compose
-- Python 3.11+
+- Python 3.11.11
+- [uv](https://docs.astral.sh/uv/) (modern Python package manager)
 - Oasis CLI tools (`oasis` command)
 - Age encryption tool (for signal service decryption)
 - Understanding of trading, blockchain and TEEs
@@ -47,21 +48,20 @@ Both services run within the Oasis ROFL framework, ensuring secure key managemen
 
 For local development without Docker or ROFL/TEE requirements:
 
-1. Clone the repository:
+1. Install uv (if not already installed):
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+2. Clone the repository:
 ```bash
 git clone https://github.com/oasisprotocol/wt3.git
 cd wt3
 ```
 
-2. Create and activate a Python virtual environment:
+3. Install dependencies (uv will automatically create a virtual environment):
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.signal.txt
+uv sync
 ```
 
 4. Modify the ROFL clients to use local keypairs:
@@ -99,12 +99,12 @@ TWITTER_ACCESS_TOKEN_SECRET=your_twitter_access_token_secret
 
 6. Run the signal service in one terminal:
 ```bash
-python -m src.signal_service_example
+uv run python -m src.signal_service_example
 ```
 
 7. Run the main WT3 agent in another terminal:
 ```bash
-python -m src.wt3
+uv run python -m src.wt3
 ```
 
 **Note**: For local development, you'll need to bypass the ROFL socket connection. The easiest way is to modify the `rofl.py` files as described above.
@@ -313,8 +313,8 @@ wt3/
 ├── scripts/                        # Deployment and utility scripts
 ├── data/                           # Configuration and deployment files
 ├── tests/                          # Testing utilities
-├── requirements.txt                # Python dependencies for main agent
-├── requirements.signal.txt         # Python dependencies for signal service
+├── pyproject.toml                  # Python project configuration
+├── uv.lock                         # Locked dependency versions
 ├── Dockerfile                      # Main agent container definition
 ├── Dockerfile.signal               # Signal service container definition
 ├── compose.yaml                    # Docker Compose configuration
