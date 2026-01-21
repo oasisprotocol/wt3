@@ -91,11 +91,24 @@ class SignalExecutor:
                 stop_loss_levels = [single_stop_loss]
             
             signal_id = strategy_data.get('signal_id', '')
+            weight = strategy_data.get('weight')
+            risk_reward_ratio = strategy_data.get('risk_reward_ratio')
+
             if signal_id:
-                logger.info(f"Executing signal: {signal_id}")
+                log_msg = f"Executing signal: {signal_id}"
+                if weight is not None:
+                    log_msg += f" (weight={weight}"
+                    if risk_reward_ratio is not None:
+                        log_msg += f", rr={risk_reward_ratio}"
+                    log_msg += ")"
+                logger.info(log_msg)
             
             if action == 'close':
-                logger.info(f"Closing position in {coin}")
+                return_percent = strategy_data.get('return_percent')
+                if return_percent is not None:
+                    logger.info(f"Closing position in {coin} (expected return: {return_percent:.2f}%)")
+                else:
+                    logger.info(f"Closing position in {coin}")
                 close_result = await self.order_manager.close_position(coin)
                 return f"Closed position in {coin}: {close_result}"
             
@@ -151,44 +164,29 @@ class SignalExecutor:
         stop_loss_levels: List[float]
     ) -> str:
         """Open position with multiple stop-loss levels.
-        
-        If multiple stop-loss levels are provided, the position will be partially
-        closed at each level proportionally.
-        
+
+        Position is divided equally among stop-loss levels.
+        Each level will close its portion when triggered.
+
         Args:
             coin: Trading pair symbol
             is_long: True for long, False for short
             size: Total position size in coin units
             stop_loss_levels: List of stop-loss price levels
-            
+
         Returns:
             str: Execution result message
         """
         try:
-            if not stop_loss_levels:
-                primary_stop_loss = 0
-            else:
-                primary_stop_loss = stop_loss_levels[0]
-            
             trade_result = await self.order_manager.open_position(
                 coin=coin,
                 is_long=is_long,
                 size=size,
-                stop_loss=primary_stop_loss
+                stop_loss_levels=stop_loss_levels
             )
-            
-            if len(stop_loss_levels) > 1:
-                logger.info(f"Setting up {len(stop_loss_levels)} stop-loss levels")
-                
-                size_per_level = size / len(stop_loss_levels)
-                
-                for i, stop_level in enumerate(stop_loss_levels[1:], 1):
-                    logger.info(f"Setting stop-loss level {i+1}/{len(stop_loss_levels)} at ${stop_level:.2f} for {size_per_level:.6f} {coin}")
-                
-                logger.info("Note: Multiple stop-loss levels configured. Position will be partially closed at each level.")
-            
+
             return trade_result
-            
+
         except Exception as e:
             error_msg = f"Error opening position with multiple stops: {str(e)}"
             logger.error(error_msg)

@@ -20,6 +20,9 @@ class StrategyData(TypedDict):
     stop_loss: float
     stop_loss_levels: Optional[List[float]]
     signal_id: Optional[str]
+    weight: Optional[float]
+    risk_reward_ratio: Optional[float]
+    return_percent: Optional[float]
 
 
 class TradeDecision(TypedDict):
@@ -184,17 +187,20 @@ class SignalClient:
                         raise SignalValidationError(f"Invalid type for strategy.{field}: expected {field_type.__name__}, got {type(strategy[field]).__name__}")
                 
                 optional_strategy_fields = {
-                    'stop_loss': float,
+                    'stop_loss': (float, int),
                     'stop_loss_levels': list,
-                    'signal_id': str
+                    'signal_id': str,
+                    'weight': (float, int),
+                    'risk_reward_ratio': (float, int),
+                    'return_percent': (float, int)
                 }
-                
-                for field, field_type in optional_strategy_fields.items():
+
+                for field, field_types in optional_strategy_fields.items():
                     if field in strategy and strategy[field] is not None:
-                        if isinstance(field_type, float) and isinstance(strategy[field], (int, float)):
-                            continue
-                        if not isinstance(strategy[field], field_type):
-                            raise SignalValidationError(f"Invalid type for strategy.{field}: expected {field_type.__name__}, got {type(strategy[field]).__name__}")
+                        if not isinstance(strategy[field], field_types):
+                            expected = field_types if isinstance(field_types, tuple) else (field_types,)
+                            expected_names = "/".join(t.__name__ for t in expected)
+                            raise SignalValidationError(f"Invalid type for strategy.{field}: expected {expected_names}, got {type(strategy[field]).__name__}")
             
             return data
             
