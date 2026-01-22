@@ -6,10 +6,80 @@ and handling stop-loss/take-profit orders on the exchange.
 """
 
 import logging
+from dataclasses import dataclass
 
 from .exceptions import OrderError, MarketDataError
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class StopLossAllocation:
+    stop_price: float
+    size: float
+
+
+def calculate_stop_loss_allocations(
+    size: float,
+    stop_loss_levels: list[float],
+    sz_decimals: int,
+    px_step: float
+) -> list[StopLossAllocation]:
+    """Calculate size allocations for multiple stop-loss levels.
+
+    Divides the total position size across stop-loss levels, ensuring the sum
+    of all allocations equals the original size (using remainder allocation
+    for the last level to handle rounding).
+
+    Args:
+        size: Total position size
+        stop_loss_levels: List of stop-loss price levels
+        sz_decimals: Decimal precision for size rounding
+        px_step: Price tick size for price rounding
+
+    Returns:
+        List of StopLossAllocation with rounded prices and sizes
+
+    Raises:
+        ValueError: If inputs are invalid
+    """
+    if not stop_loss_levels:
+        return []
+
+    if size <= 0:
+        raise ValueError(f"Size must be positive, got {size}")
+
+    if sz_decimals < 0:
+        raise ValueError(f"sz_decimals must be non-negative, got {sz_decimals}")
+
+    if px_step <= 0:
+        raise ValueError(f"px_step must be positive, got {px_step}")
+
+    num_levels = len(stop_loss_levels)
+    size_per_level = round(size / num_levels, sz_decimals)
+
+    if size_per_level <= 0:
+        raise ValueError(
+            f"Position size {size} is too small to split into {num_levels} levels "
+            f"with {sz_decimals} decimal precision"
+        )
+
+    remaining_size = size
+    allocations = []
+
+    for i, stop_price in enumerate(stop_loss_levels):
+        is_last = (i == num_levels - 1)
+        sl_size = remaining_size if is_last else size_per_level
+        remaining_size = round(remaining_size - sl_size, sz_decimals)
+
+        rounded_stop = round(stop_price / px_step) * px_step
+
+        allocations.append(StopLossAllocation(
+            stop_price=rounded_stop,
+            size=sl_size
+        ))
+
+    return allocations
 
 
 class OrderManager:
@@ -89,23 +159,20 @@ class OrderManager:
 
             sl_results = []
             if stop_loss_levels:
-                num_levels = len(stop_loss_levels)
-                size_per_level = round(size / num_levels, sz_decimals)
-                remaining_size = size
+                allocations = calculate_stop_loss_allocations(
+                    size=size,
+                    stop_loss_levels=stop_loss_levels,
+                    sz_decimals=sz_decimals,
+                    px_step=px_step
+                )
 
-                logger.info(f"Setting {num_levels} stop loss levels, {size_per_level} {coin} per level")
+                logger.info(f"Setting {len(allocations)} stop loss levels")
 
-                for i, stop_price in enumerate(stop_loss_levels):
-                    is_last = (i == num_levels - 1)
-                    sl_size = remaining_size if is_last else size_per_level
-                    remaining_size -= sl_size
-
-                    rounded_stop = round(stop_price / px_step) * px_step
-
+                for i, allocation in enumerate(allocations):
                     try:
                         stop_order_type = {
                             "trigger": {
-                                "triggerPx": rounded_stop,
+                                "triggerPx": allocation.stop_price,
                                 "isMarket": True,
                                 "tpsl": "sl"
                             }
@@ -114,18 +181,18 @@ class OrderManager:
                         stop_result = self.exchange.order(
                             name=coin,
                             is_buy=not is_long,
-                            sz=sl_size,
-                            limit_px=rounded_stop,
+                            sz=allocation.size,
+                            limit_px=allocation.stop_price,
                             order_type=stop_order_type,
                             reduce_only=True
                         )
 
-                        logger.info(f"Stop loss {i+1}/{num_levels} at ${rounded_stop:.2f} for {sl_size} {coin}: {stop_result.get('status')}")
-                        sl_results.append(f"${rounded_stop:.2f}")
+                        logger.info(f"Stop loss {i+1}/{len(allocations)} at ${allocation.stop_price:.2f} for {allocation.size} {coin}: {stop_result.get('status')}")
+                        sl_results.append(f"${allocation.stop_price:.2f}")
 
                     except Exception as e:
-                        logger.error(f"Error setting stop loss {i+1} at ${rounded_stop:.2f}: {e}")
-                        sl_results.append(f"${rounded_stop:.2f} (FAILED)")
+                        logger.error(f"Error setting stop loss {i+1} at ${allocation.stop_price:.2f}: {e}")
+                        sl_results.append(f"${allocation.stop_price:.2f} (FAILED)")
 
             sl_msg = ", ".join(sl_results) if sl_results else "None"
             return (
