@@ -6,10 +6,80 @@ and handling stop-loss/take-profit orders on the exchange.
 """
 
 import logging
+from dataclasses import dataclass
 
 from .exceptions import OrderError, MarketDataError
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class StopLossAllocation:
+    stop_price: float
+    size: float
+
+
+def calculate_stop_loss_allocations(
+    size: float,
+    stop_loss_levels: list[float],
+    sz_decimals: int,
+    px_step: float
+) -> list[StopLossAllocation]:
+    """Calculate size allocations for multiple stop-loss levels.
+
+    Divides the total position size across stop-loss levels, ensuring the sum
+    of all allocations equals the original size (using remainder allocation
+    for the last level to handle rounding).
+
+    Args:
+        size: Total position size
+        stop_loss_levels: List of stop-loss price levels
+        sz_decimals: Decimal precision for size rounding
+        px_step: Price tick size for price rounding
+
+    Returns:
+        List of StopLossAllocation with rounded prices and sizes
+
+    Raises:
+        ValueError: If inputs are invalid
+    """
+    if not stop_loss_levels:
+        return []
+
+    if size <= 0:
+        raise ValueError(f"Size must be positive, got {size}")
+
+    if sz_decimals < 0:
+        raise ValueError(f"sz_decimals must be non-negative, got {sz_decimals}")
+
+    if px_step <= 0:
+        raise ValueError(f"px_step must be positive, got {px_step}")
+
+    num_levels = len(stop_loss_levels)
+    size_per_level = round(size / num_levels, sz_decimals)
+
+    if size_per_level <= 0:
+        raise ValueError(
+            f"Position size {size} is too small to split into {num_levels} levels "
+            f"with {sz_decimals} decimal precision"
+        )
+
+    remaining_size = size
+    allocations = []
+
+    for i, stop_price in enumerate(stop_loss_levels):
+        is_last = (i == num_levels - 1)
+        sl_size = remaining_size if is_last else size_per_level
+        remaining_size = round(remaining_size - sl_size, sz_decimals)
+
+        rounded_stop = round(stop_price / px_step) * px_step
+
+        allocations.append(StopLossAllocation(
+            stop_price=rounded_stop,
+            size=sl_size
+        ))
+
+    return allocations
 
 
 class OrderManager:
@@ -33,94 +103,104 @@ class OrderManager:
         coin: str,
         is_long: bool,
         size: float,
-        stop_loss: float
+        stop_loss_levels: list
     ) -> str:
-        """Open a new position with stop loss order.
-        
+        """Open a new position with multiple stop loss orders.
+
         Uses MARKET orders for immediate execution as required by signal provider.
-        Automatically places stop-loss order for risk management.
-        
+        Places stop-loss orders at each level, dividing the position equally.
+
         Args:
             coin (str): The trading pair symbol (e.g., 'BTC', 'ETH')
             is_long (bool): True for long position, False for short position
             size (float): Position size in coin units
-            stop_loss (float): Stop loss price level in USD
-            
+            stop_loss_levels (list): List of stop loss price levels in USD.
+                                     Position is divided equally among levels.
+
         Returns:
             str: Result message indicating success or failure
-            
+
         Raises:
             OrderError: If order execution fails
             MarketDataError: If market data cannot be retrieved
         """
         try:
             await self.exchange_client.ensure_clients()
-            
+
             coin_info = await self.market_data.get_coin_info(coin)
             sz_decimals = int(coin_info['szDecimals'])
             px_step = await self.market_data.get_tick_size(coin)
-            
+
             size = round(size, sz_decimals)
-            
+
             if size <= 0:
                 raise OrderError(f"Position size too small to execute: {size} {coin}")
-                        
-            stop_loss = round(stop_loss / px_step) * px_step
-            
-            logger.info(f"Rounded stop loss to {stop_loss}")
-                                                
+
             current_price = await self.market_data.get_current_price(coin)
             if current_price <= 0:
                 raise MarketDataError(f"Failed to get current price for {coin}")
-                                    
+
             logger.info(f"Opening {'LONG' if is_long else 'SHORT'} position: {size} {coin} (MARKET order)")
-            
+
             order_result = self.exchange.market_open(coin, is_long, size, None, 0.01)
-            
+
             logger.info(f"Market order result: {order_result}")
-            
+
             if order_result.get('status') != 'ok':
                 raise OrderError(f"Failed to open position: {order_result}")
-                
+
             response_data = order_result.get('response', {}).get('data', {})
             statuses = response_data.get('statuses', [{}])
-            
+
             if statuses and 'error' in statuses[0]:
                 error_msg = statuses[0]['error']
                 logger.error(f"Order error: {error_msg}")
                 raise OrderError(f"Failed to open position: {error_msg}")
-            
-            try:
-                if stop_loss and stop_loss > 0:
-                    stop_order_type = {
-                        "trigger": {
-                            "triggerPx": stop_loss,
-                            "isMarket": True,
-                            "tpsl": "sl"
+
+            sl_results = []
+            if stop_loss_levels:
+                allocations = calculate_stop_loss_allocations(
+                    size=size,
+                    stop_loss_levels=stop_loss_levels,
+                    sz_decimals=sz_decimals,
+                    px_step=px_step
+                )
+
+                logger.info(f"Setting {len(allocations)} stop loss levels")
+
+                for i, allocation in enumerate(allocations):
+                    try:
+                        stop_order_type = {
+                            "trigger": {
+                                "triggerPx": allocation.stop_price,
+                                "isMarket": True,
+                                "tpsl": "sl"
+                            }
                         }
-                    }
-                    
-                    stop_result = self.exchange.order(
-                        name=coin,
-                        is_buy=not is_long,
-                        sz=size,
-                        limit_px=stop_loss,
-                        order_type=stop_order_type,
-                        reduce_only=True
-                    )
-                    
-                    logger.info(f"Stop loss market order result: {stop_result}")
-            except Exception as e:
-                logger.error(f"Error setting stop loss: {e}")
-                raise OrderError(f"Failed to set stop loss: {str(e)}")
-            
-            sl_msg = f"${stop_loss:.2f}" if stop_loss is not None and stop_loss > 0 else "None"
+
+                        stop_result = self.exchange.order(
+                            name=coin,
+                            is_buy=not is_long,
+                            sz=allocation.size,
+                            limit_px=allocation.stop_price,
+                            order_type=stop_order_type,
+                            reduce_only=True
+                        )
+
+                        logger.info(f"Stop loss {i+1}/{len(allocations)} at ${allocation.stop_price:.2f} for {allocation.size} {coin}: {stop_result.get('status')}")
+                        sl_results.append(f"${allocation.stop_price:.2f}")
+
+                    except Exception as e:
+                        logger.error(f"Error setting stop loss {i+1} at ${allocation.stop_price:.2f}: {e}")
+                        sl_results.append(f"${allocation.stop_price:.2f} (FAILED)")
+
+            sl_msg = ", ".join(sl_results) if sl_results else "None"
             return (
                 f"Successfully opened {'LONG' if is_long else 'SHORT'} position: {size} {coin} (market order) "
-                f"with SL: {sl_msg}"
+                f"with SL levels: [{sl_msg}]"
             )
-            
-        except (OrderError, MarketDataError) as e:
+
+        except (OrderError, MarketDataError):
             raise
         except Exception as e:
             import traceback
@@ -178,7 +258,7 @@ class OrderManager:
             
             return f"Successfully closed {'LONG' if is_long else 'SHORT'} position: {size} {coin} (MARKET order)"
             
-        except (OrderError, MarketDataError) as e:
+        except (OrderError, MarketDataError):
             raise
         except Exception as e:
             error_msg = f"Error closing position: {str(e)}"
