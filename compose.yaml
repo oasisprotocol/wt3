@@ -1,6 +1,6 @@
 services:
   signal-service:
-    image: docker.io/ahmedatoasis/wt3-signal@sha256:70986bf99f8ecc41f04b9e6f31e4ceceb38aaae36b6e45ae2bc46a8b0934d633
+    image: docker.io/ahmedatoasis/wt3-signal:latest
     platform: linux/amd64
     volumes:
       - /run/rofl-appd.sock:/run/rofl-appd.sock
@@ -8,10 +8,11 @@ services:
     environment:
       - AGE_PRIVATE_KEY=${AGE_PRIVATE_KEY}
       - MOONWARD_API_KEY=${MOONWARD_API_KEY}
+      - MOONWARD_RISK_PERCENT=${MOONWARD_RISK_PERCENT}
     restart: always
 
   wt3:
-    image: docker.io/ahmedatoasis/wt3@sha256:afd8dc9ebaaa816226f862074506fca97f3670717fe1cff480e58df98241a0d2
+    image: docker.io/ahmedatoasis/wt3:latest
     build:
       context: .
       dockerfile: Dockerfile
