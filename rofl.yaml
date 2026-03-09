@@ -26,6 +26,7 @@ deployments:
     network: mainnet
     paratime: sapphire
     admin: testing
+    oci_repository: rofl.sh/a61e15fa-49e7-4398-a9b7-e843afdd48b3:1770968500
     trust_root:
       height: 24140280
       hash: 67af7917bcb16bee0769bbd32a2c74b0a840bd5233ba684f10ef5695565d4f8f
@@ -36,10 +37,10 @@ deployments:
           min_tcb_evaluation_data_number: 18
           tdx: {}
       enclaves:
-        - id: uNqCl+0OvkS6+DWQRLB6WVR50gaa09a0wwzx4Ea/0X4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-        - id: nmvsoAff09EdL2XTiYkbfQ8A73wGaHyRrrmt1x/FuKkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - id: 6Vsx5irmSCemYem/NzEKu9AI78qVkSk354ZW/fTVAg8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - id: V9HXyB8D09c4p+q1kfABxv1Ikf53HR0LaSPKwbPYK/4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
       endorsements:
-        - node: aasPic6KJpQf3w6DTjaDu8Pwwke9k0vPCjuZQ5HQQQQ=
+        - any: {}
       fees: endorsing_node
       max_expiration: 3
     secrets:
@@ -61,6 +62,13 @@ deployments:
         value: pGJwa1gg3eUzqhDGI/qi8m1iC9Zd4BCBhMku5igt2l1QWdYnxnBkbmFtZVgfrvCjJV+R2RSctaOev10Tg5tXrUyfylC21sQIoSoUumVub25jZU9/mpZTAhh7qbVgRZRMsT1ldmFsdWVYWjmozrW+cSX+yooX73jT/Zr2c49jglDin4akg/4JLYnCIq8UoI2xiSehv/cTWZt19z06u6iw4+vWGXhjkH806OGCHzI2J2g6o+KssZBn2kdOmcmZXz9qsg3lwg==
       - name: MOONWARD_API_KEY
         value: pGJwa1ggHECGzYr2IN3Q1TJyryKnUu9HBaLF9rN96lnumVe3QWlkbmFtZVgggkyP9cCWGKkDcvGYx3dkkKgRAsiUaEMy4HTUo9F/efNlbm9uY2VP5WC7+tQsLxYcEIX//I25ZXZhbHVlWDMg5I/2bGUaQr3CIyIxQOxmiP6QySq1PdB4ti2PEBDNRaZ42SQCh7MfdhqYDZ1qGFEHBtY=
+      - name: MOONWARD_RISK_PERCENT
+        value: pGJwa1ggTDC5Ci1uJqpNF2YFMSrNmowyts4flBnU1+YFvPl8pE5kbmFtZVglL6itccegzdc05Gkt1IuDVtgaxLa9vBmw77i2epzDS3z9dOvF22Vub25jZU+cZO+Moje2cWB8aIlpJOhldmFsdWVUDhvnDuvYP93b5Hors1k8dJp3mL4=
+    machines:
+      default:
+        provider: oasis1qzc8pldvm8vm3duvdrj63wgvkw34y9ucfcxzetqr
+        offer: large
+        id: "0000000000000098"
   testnet:
     app_id: rofl1qzp3c6zt96r5c5sw0sljlvepwgg4u23atgh4legq
     network: testnet
