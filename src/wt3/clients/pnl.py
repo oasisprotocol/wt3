@@ -69,13 +69,15 @@ class PnLClient:
             portfolio = {
                 "day": None,
                 "week": None,
-                "month": None
+                "month": None,
+                "allTime": None,
             }
 
             perp_mapping = {
                 "perpDay": "day",
                 "perpWeek": "week",
-                "perpMonth": "month"
+                "perpMonth": "month",
+                "perpAllTime": "allTime",
             }
 
             for item in data:
