@@ -36,6 +36,7 @@ class TradingState:
             self.last_daily_pnl_time: Optional[datetime] = None
             self.last_weekly_pnl_time: Optional[datetime] = None
             self.last_monthly_pnl_time: Optional[datetime] = None
+            self.last_fee_check_time: Optional[datetime] = None
             self.is_running = True
         except Exception as e:
             error_msg = f"Failed to initialize trading state: {str(e)}"

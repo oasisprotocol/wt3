@@ -67,6 +67,8 @@ async def main() -> bool:
         agent.trading_state.last_weekly_pnl_time = datetime.utcnow() - timedelta(days=6)
     if agent.trading_state.last_monthly_pnl_time is None:
         agent.trading_state.last_monthly_pnl_time = datetime.utcnow() - timedelta(days=29)
+    if agent.trading_state.last_fee_check_time is None:
+        agent.trading_state.last_fee_check_time = datetime.utcnow() - timedelta(hours=23)
 
     # logger.info("STARTUP: Closing all existing positions")
     # try:
@@ -139,6 +141,19 @@ async def main() -> bool:
                     await post_pnl_recap(agent, "month")
                 except Exception as e:
                     logger.error(f"Error posting monthly PnL recap: {str(e)}")
+                    logger.warning("Will retry in next interval")
+
+            time_since_last_fee_check = current_time - (agent.trading_state.last_fee_check_time or (current_time - timedelta(days=1)))
+            run_fee_check = time_since_last_fee_check.total_seconds() >= 86400
+
+            if run_fee_check:
+                logger.info("Checking quarterly fee schedule")
+                try:
+                    from .core.performance_fee.scheduler import maybe_run_quarterly_fee
+                    await maybe_run_quarterly_fee(agent, current_time)
+                    agent.trading_state.last_fee_check_time = current_time
+                except Exception as e:
+                    logger.error(f"Error in quarterly fee check: {str(e)}")
                     logger.warning("Will retry in next interval")
 
             if run_social:
