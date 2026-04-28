@@ -162,7 +162,7 @@ async def maybe_run_quarterly_fee(
         )
         return
 
-    guard_window_end_ms = target_period.end_ms + 86_400_000
+    guard_window_end_ms = target_period.end_ms + 60*60*24*1000
     in_guard_window = transfers_in_window(
         existing_transfers, target_period.start_ms, guard_window_end_ms
     )

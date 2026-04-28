@@ -124,7 +124,7 @@ def _transfers_for_period(
     shortly after period close.
     """
     return transfers_in_window(
-        ledger_transfers, period.start_ms, period.end_ms + 86_400_000
+        ledger_transfers, period.start_ms, period.end_ms + 60*60*24*1000
     )
 
 
