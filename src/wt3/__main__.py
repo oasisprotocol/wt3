@@ -144,7 +144,7 @@ async def main() -> bool:
                     logger.warning("Will retry in next interval")
 
             time_since_last_fee_check = current_time - (agent.trading_state.last_fee_check_time or (current_time - timedelta(days=1)))
-            run_fee_check = time_since_last_fee_check.total_seconds() >= 86400
+            run_fee_check = time_since_last_fee_check.total_seconds() >= 60*60*24
 
             if run_fee_check:
                 logger.info("Checking quarterly fee schedule")
