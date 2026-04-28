@@ -21,8 +21,6 @@ Idempotency:
   - Transfer rounds down to 6 decimals, never overshooting.
 """
 
-from __future__ import annotations
-
 import logging
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal

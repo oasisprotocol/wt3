@@ -13,8 +13,6 @@ Optional env:
     DRY_RUN_END_DATE    YYYY-MM-DD, default: today (UTC)
 """
 
-from __future__ import annotations
-
 import asyncio
 import os
 from datetime import datetime, timedelta, timezone

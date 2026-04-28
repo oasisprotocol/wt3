@@ -11,8 +11,6 @@ from the Hyperliquid SDK (hyperliquid/exchange.py:506). It uses the ROFL-signed
 trading wallet to send USDC on the L1 directly to the fee wallet.
 """
 
-from __future__ import annotations
-
 import asyncio
 import logging
 from dataclasses import dataclass

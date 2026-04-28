@@ -3,8 +3,6 @@
 Pure string formatting. The scheduler posts this via SocialClient._tweet.
 """
 
-from __future__ import annotations
-
 from decimal import Decimal
 
 from .calculator import PeriodResult

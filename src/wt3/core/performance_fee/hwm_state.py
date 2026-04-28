@@ -6,8 +6,6 @@ on-chain fee-transfer ledger. If the cache is lost, state is rebuilt
 deterministically from the zero-trust sources.
 """
 
-from __future__ import annotations
-
 import json
 import logging
 from dataclasses import asdict, dataclass, field

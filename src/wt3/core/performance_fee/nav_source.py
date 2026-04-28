@@ -14,8 +14,6 @@ Sampling reality (confirmed via live API):
 The caller decides which bucket to use based on how far back the window is.
 """
 
-from __future__ import annotations
-
 import logging
 from decimal import Decimal
 from typing import Any
