@@ -68,7 +68,7 @@ deployments:
       default:
         provider: oasis1qzc8pldvm8vm3duvdrj63wgvkw34y9ucfcxzetqr
         offer: large
-        id: "0000000000000098"
+        id: "0000000000000105"
   testnet:
     app_id: rofl1qzp3c6zt96r5c5sw0sljlvepwgg4u23atgh4legq
     network: testnet
