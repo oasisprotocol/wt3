@@ -1,4 +1,4 @@
-"""HWM state persistence and reconstruction.
+"""High Water Mark (HWM) state persistence and reconstruction.
 
 Cache at /storage/data/hwm_state.json (survives container restart within
 the same persistent volume). Ground truth = Hyperliquid NAV history +
