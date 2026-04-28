@@ -7,8 +7,10 @@ Wraps exchange.usd_transfer with:
   - Structured result so the scheduler can halt cleanly on failure.
 
 The actual on-chain action is exchange.usd_transfer(amount: float, destination: str)
-from the Hyperliquid SDK (hyperliquid/exchange.py:506). It uses the ROFL-signed
-trading wallet to send USDC on the L1 directly to the fee wallet.
+from the Hyperliquid SDK:
+https://github.com/hyperliquid-dex/hyperliquid-python-sdk/blob/v0.12.0/hyperliquid/exchange.py#L506
+It uses the ROFL-signed trading wallet to send USDC on the L1 directly
+to the fee wallet.
 """
 
 import asyncio
