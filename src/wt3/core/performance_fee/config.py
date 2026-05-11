@@ -17,7 +17,7 @@ FEE_RATE: Decimal = Decimal("0.30")
 
 FEE_WALLET: str = "0xbf5f64d05e36a34bf43ea95e99657b09e4c7a1bb"
 
-START_DATE: datetime = datetime(2026, 5, 1, 0, 0, 0, tzinfo=timezone.utc)
+START_DATE: datetime = datetime(2026, 4, 1, 0, 0, 0, tzinfo=timezone.utc)
 
 PERIOD_MONTHS: int = 3
 

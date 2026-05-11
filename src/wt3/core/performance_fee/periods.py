@@ -1,8 +1,8 @@
 """Period boundary arithmetic.
 
-Periods are 3 calendar months, anchored at START_DATE (2026-05-01 UTC).
-Period 1: 2026-05-01 → 2026-07-31 23:59:59 UTC
-Period 2: 2026-08-01 → 2026-10-31 23:59:59 UTC
+Periods are 3 calendar months, anchored at START_DATE (2026-04-01 UTC).
+Period 1: 2026-04-01 → 2026-06-30 23:59:59 UTC
+Period 2: 2026-07-01 → 2026-09-30 23:59:59 UTC
 ...
 
 Pure date math. No I/O.
